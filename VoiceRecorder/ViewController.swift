@@ -29,7 +29,7 @@ class ViewController: UIViewController {
         recordingSession = AVAudioSession.sharedInstance()
         
         do {
-            try recordingSession.setCategory(.playAndRecord, mode: .default)
+            try recordingSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth])
             try recordingSession.setActive(true)
             recordingSession.requestRecordPermission { [unowned self] allowed in
                 DispatchQueue.main.async {
@@ -75,9 +75,9 @@ class ViewController: UIViewController {
         
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 12000,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
+            AVSampleRateKey: 44100,
+            AVNumberOfChannelsKey: 2,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
         
         do {
