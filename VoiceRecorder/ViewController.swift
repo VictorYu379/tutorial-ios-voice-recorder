@@ -89,10 +89,10 @@ class ViewController: UIViewController {
         // Toggle overdub recording.
         if audioRecorder2 == nil && audioPlayer == nil {
             do {
-                let audioFilename = getDocumentsDirectory().appendingPathComponent("recording.m4a")
-                audioPlayer = try AVAudioPlayer(contentsOf: audioFilename)
-                audioPlayer.delegate = self
-                audioPlayer.prepareToPlay()
+//                let audioFilename = getDocumentsDirectory().appendingPathComponent("recording.m4a")
+//                audioPlayer = try AVAudioPlayer(contentsOf: audioFilename)
+//                audioPlayer.delegate = self
+//                audioPlayer.prepareToPlay()
                 
                 let track2URL = getDocumentsDirectory().appendingPathComponent("recording2.m4a")
                 let settings = [
@@ -102,12 +102,52 @@ class ViewController: UIViewController {
                     AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
                 ]
                 
+                
+                
+                // Create a new AVAudioEngine instance.
+                mixAudioEngine = AVAudioEngine()
+                guard let engine = mixAudioEngine else { return }
+                
+                // Create two player nodes, one for each track.
+                let playerNode1 = AVAudioPlayerNode()
+                
+                // Attach the player nodes to the engine.
+                engine.attach(playerNode1)
+                
+                // Get file URLs for the main and overdub tracks.
+                let fileURL1 = getDocumentsDirectory().appendingPathComponent("recording.m4a")
+                
+                var audioFile1: AVAudioFile!
+                
+                do {
+                    audioFile1 = try AVAudioFile(forReading: fileURL1)
+                } catch {
+                    print("Error loading audio files: \(error)")
+                    return
+                }
+                
+                // !!!!!!!!!!
+                engine.connect(playerNode1, to: engine.mainMixerNode, format: audioFile1.processingFormat)
+                playerNode1.scheduleFile(audioFile1, at: nil, completionHandler: nil)
+                
+                do {
+                    try engine.start()
+                } catch {
+                    print("Error starting audio engine: \(error)")
+                    return
+                }
+                
+                
+                
                 audioRecorder2 = try AVAudioRecorder(url: track2URL, settings: settings)
                 audioRecorder2?.delegate = self
                 audioRecorder2?.prepareToRecord()
                 
-                let timeOffset = audioPlayer.deviceCurrentTime + 0.1
-                audioPlayer.play(atTime: timeOffset)
+                let timeOffset = audioRecorder2!.deviceCurrentTime + 0.1
+                let startTime = AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: timeOffset))
+                
+//                audioPlayer.play(atTime: timeOffset)
+                playerNode1.play(at: startTime)
                 audioRecorder2?.record(atTime: timeOffset)
                 
                 overdubButton.setTitle("Stop Overdub", for: .normal)
@@ -185,7 +225,6 @@ class ViewController: UIViewController {
     }
     
     func finishPlayback() {
-        audioPlayer = nil
         playButton.setTitle("Play Your Recording", for: .normal)
     }
     
@@ -212,7 +251,10 @@ class ViewController: UIViewController {
     
     func finishOverdubRecording(success: Bool) {
         audioRecorder2?.stop()
-        audioRecorder2 = nil
+//        audioRecorder2 = nil
+        
+        mixAudioEngine?.stop()
+        mixAudioEngine = nil
         
         if success {
             overdubButton.setTitle("Start Overdub", for: .normal)
@@ -251,12 +293,16 @@ class ViewController: UIViewController {
             return
         }
         
+        // !!!!!!!!!!
+        let timeOffset = audioRecorder2!.deviceCurrentTime + 3.0
+        let startTime = AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: timeOffset))
+        
         // Connect the player nodes to the engine's main mixer node.
         engine.connect(playerNode1, to: engine.mainMixerNode, format: audioFile1.processingFormat)
         engine.connect(playerNode2, to: engine.mainMixerNode, format: audioFile2.processingFormat)
         
         // Schedule playback of both audio files.
-        playerNode1.scheduleFile(audioFile1, at: nil, completionHandler: nil)
+        playerNode1.scheduleFile(audioFile1, at: startTime, completionHandler: nil)
         playerNode2.scheduleFile(audioFile2, at: nil, completionHandler: nil)
         
         do {
@@ -268,7 +314,7 @@ class ViewController: UIViewController {
         
         // Start playing both nodes.
         playerNode1.play()
-        playerNode2.play()
+        playerNode2.play(at: startTime)
         
         mixPlaybackButton.setTitle("Stop Mix Playback", for: .normal)
     }
