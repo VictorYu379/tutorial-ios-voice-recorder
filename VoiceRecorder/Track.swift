@@ -2,8 +2,17 @@ import Foundation
 import AVFoundation
 
 
+enum TrackState {
+    case empty
+    case recording
+    case hasContent
+    case playing
+}
+
+
 class Track {
-    let id = UUID() // Unique identifier for each track
+    var id: Int
+    var state: TrackState = .empty
     var isMuted: Bool = false
     var audioFileUrl: URL // URL to the audio file
     
@@ -11,10 +20,19 @@ class Track {
     private var audioFile: AVAudioFile?
     
     // MARK: - Initialization
-    init(audioFileURL: URL) { //  audioFileURL is now mandatory
+    init(id: Int) {
+        self.id = id
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
-        self.audioFileUrl = audioFileURL
+        self.audioFileUrl = Track.getAudioFileURL(id)
+    }
+    
+    class func getAudioFileURL(_ id: Int) -> URL {
+        return getDocumentsDirectory().appendingPathComponent("recording_" + String(id) + ".m4a")
+    }
+    
+    func updateState(_ newState: TrackState) {
+        state = newState
     }
     
     // MARK: - Audio Management
@@ -37,7 +55,12 @@ class Track {
         }
         
         do {
-            audioFile = try AVAudioFile(forReading: self.audioFileUrl)
+            if FileManager.default.fileExists(atPath: audioFileUrl.path) {
+                audioFile = try AVAudioFile(forReading: audioFileUrl)
+            } else {
+                print("file not exists in url yet: \(audioFileUrl)")
+                return false
+            }
         } catch {
             print("Track \(id): Error loading audio file: \(error)")
             audioFile = nil
@@ -48,7 +71,7 @@ class Track {
         return true
     }
     
-    func scheduleToPlay(at time: TimeInterval) {
+    func scheduleToPlay(at time: AVAudioTime) {
         /**
          *  Play the audio file at a specific time
          */
@@ -65,25 +88,22 @@ class Track {
         if playerNode.isPlaying {
             playerNode.stop()
         }
-
-        let startTime = AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: time))
         
-        playerNode.scheduleFile(audioFile, at: startTime) {
+        playerNode.scheduleFile(audioFile, at: time) {
             print("Track \(self.id): Finished playing")
         }
         playerNode.play()
         
+        state = .playing
         print("Track \(id): Playing at \(time)")
     }
     
-    func pause() {
-        /**
-         * Pause the playback
-         */
+    func stop() {
         if let playerNode = playerNode {
-            playerNode.pause()
+            playerNode.stop()
+            playerNode.reset()
         }
-        print("Track \(id): Paused")
+        print("Track \(id): Stopped playback")
     }
     
     func mute() {
@@ -105,5 +125,9 @@ class Track {
     // Expose the playerNode
     func getPlayerNode() -> AVAudioPlayerNode? {
         return playerNode
+    }
+    
+    func getAudioFormat() -> AVAudioFormat? {
+        return audioFile?.processingFormat
     }
 }

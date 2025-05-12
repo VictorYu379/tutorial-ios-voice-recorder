@@ -9,9 +9,7 @@
 import SwiftUI
 
 struct MainPage: View {
-    private let soundManager = SoundManager()
-    @State private var focusedTrack: Int = 1
-    @State private var isRecording = false
+    @StateObject private var controller = MainPageController()
     
     var body: some View {
         VStack {
@@ -34,14 +32,9 @@ struct MainPage: View {
                 }
                 Button(action: {
                     print("Recorder button tapped")
-                    if isRecording {
-                        soundManager.stopRecording()
-                    } else {
-                        soundManager.startRecording(trackNumber: focusedTrack)
-                    }
-                    isRecording.toggle()
+                    controller.toggleOverdub()
                 }) {
-                    Image(systemName: isRecording ? "stop.fill" : "record.circle")
+                    Image(systemName: controller.isRecording ? "stop.fill" : "record.circle")
                         .font(.system(size: 30))
                         .foregroundColor(.red)
                 }
@@ -49,9 +42,9 @@ struct MainPage: View {
             .padding()
 
             VStack{
-                TrackView(trackNumber: 1, focusedTrack: $focusedTrack).padding(.bottom, 20)
-                TrackView(trackNumber: 2, hasWaveform: true, focusedTrack: $focusedTrack).padding(.bottom, 20)
-                TrackView(trackNumber: 3, focusedTrack: $focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 1), trackNumber: 1, focused: $controller.focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 2), trackNumber: 2, focused: $controller.focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 3), trackNumber: 3, focused: $controller.focusedTrack).padding(.bottom, 20)
             }
             .padding(.vertical)
 
@@ -80,8 +73,9 @@ struct MainPage: View {
 
                 Button(action: {
                     print("play/pause button tapped")
+                    controller.togglePlayback()
                 }) {
-                    Image(systemName: "play.fill")
+                    Image(systemName: controller.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
                 }
 
@@ -103,9 +97,10 @@ struct MainPage: View {
 }
 
 struct TrackView: View {
+    var track: Track
     let trackNumber: Int
     var hasWaveform: Bool = false
-    @Binding var focusedTrack: Int
+    @Binding var focused: Int
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -113,11 +108,11 @@ struct TrackView: View {
                 .font(.headline)
                 .padding(.leading)
             RoundedRectangle(cornerRadius: 10)
-                .fill(focusedTrack == trackNumber ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
+                .fill(focused == trackNumber ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
                 .frame(height: 60)
                 .overlay(
                     Group {
-                        if hasWaveform {
+                        if track.state == .hasContent {
                             HStack {
                                 Spacer()
                                 Image(systemName: "waveform.and.mic")
@@ -133,7 +128,7 @@ struct TrackView: View {
                 )
                 .padding(.horizontal)
                 .onTapGesture {
-                    focusedTrack = trackNumber
+                    focused = trackNumber
                 }
         }
         .padding(.bottom, 8)
