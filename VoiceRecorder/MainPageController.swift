@@ -1,17 +1,9 @@
-//
-//  MainViewController.swift
-//  VoiceRecorder
-//
-//  Created by Victor Yu on 5/11/25.
-//  Copyright © 2025 Vasiliy Lada. All rights reserved.
-//
-
 import Foundation
 
 class MainPageController: ObservableObject {
     @Published var focusedTrack: Int = 1
-    @Published var isRecording = false
-    @Published var isPlaying = false
+    @Published var isRecordMode = false
+    @Published var isPlaybackMode = false
     private var tracks: [Int: Track]
     private var soundManager: SoundManager
     
@@ -25,8 +17,8 @@ class MainPageController: ObservableObject {
     }
     
     func toggleOverdub() {
-        if isRecording {
-            soundManager.stopRecording()
+        if isRecordMode {
+            soundManager.stopRecording(trackNumber: focusedTrack)
             soundManager.stopPlayback()
         } else {
             if !soundManager.prepareForPlayback()
@@ -35,14 +27,14 @@ class MainPageController: ObservableObject {
                 return
             }
             let startTime = SoundManager.getStartTime()
-            soundManager.startRecording(trackNumber: focusedTrack, at: startTime)
-            soundManager.startPlayback(at: startTime)
+            soundManager.startRecording(trackNumber: focusedTrack, at: startTime.recordAt)
+            soundManager.startPlayback(at: startTime.playAt, skippingTrack: focusedTrack)
         }
-        isRecording.toggle()
+        isRecordMode.toggle()
     }
     
     func togglePlayback() {
-        if isPlaying {
+        if isPlaybackMode {
             soundManager.stopPlayback()
         } else {
             let startTime = SoundManager.getStartTime()
@@ -51,9 +43,27 @@ class MainPageController: ObservableObject {
                 print("Playback preparation failed")
                 return
             }
-            soundManager.startPlayback(at: startTime)
+            soundManager.startPlayback(at: startTime.playAt)
         }
-        isPlaying.toggle()
+        isPlaybackMode.toggle()
+    }
+    
+    func toggleMute(id: Int) {
+        guard let track = tracks[id] else {
+            return
+        }
+        if track.isMuted {
+            track.unmute()
+        } else {
+            track.mute()
+        }
+    }
+    
+    func deleteAudio(id: Int) {
+        guard let track = tracks[id] else {
+            return
+        }
+        track.reset()
     }
     
     func getTrack(id: Int) -> Track {

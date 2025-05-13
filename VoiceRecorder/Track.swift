@@ -10,11 +10,12 @@ enum TrackState {
 }
 
 
-class Track {
+class Track: ObservableObject {
     var id: Int
-    var state: TrackState = .empty
-    var isMuted: Bool = false
+    @Published var state: TrackState = .empty
+    @Published var isMuted: Bool = false
     var audioFileUrl: URL // URL to the audio file
+    var volume: Float = 1.0
     
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
@@ -25,6 +26,10 @@ class Track {
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
         self.audioFileUrl = Track.getAudioFileURL(id)
+        
+        if FileManager.default.fileExists(atPath: self.audioFileUrl.path) {
+            self.state = .hasContent
+        }
     }
     
     class func getAudioFileURL(_ id: Int) -> URL {
@@ -89,6 +94,7 @@ class Track {
             playerNode.stop()
         }
         
+        playerNode.volume = volume
         playerNode.scheduleFile(audioFile, at: time) {
             print("Track \(self.id): Finished playing")
         }
@@ -99,9 +105,14 @@ class Track {
     }
     
     func stop() {
+        if state != .playing {
+            print("Track \(id) is not playing")
+            return
+        }
         if let playerNode = playerNode {
             playerNode.stop()
             playerNode.reset()
+            state = .hasContent
         }
         print("Track \(id): Stopped playback")
     }
@@ -114,6 +125,24 @@ class Track {
     func unmute() {
         isMuted = false;
         print("Track \(id): Unmuted")
+    }
+    
+    func reset() {
+        if FileManager.default.fileExists(atPath: audioFileUrl.path) {
+            do {
+                try FileManager.default.removeItem(at: audioFileUrl)
+                print("Deleted file at \(audioFileUrl.lastPathComponent)")
+                state = .empty
+                isMuted = false
+                playerNode?.reset()
+                audioFile = nil
+                volume = 1.0
+            } catch {
+                print("Couldn’t delete file: \(error)")
+            }
+        } else {
+            print("No file to delete at \(audioFileUrl.path)")
+        }
     }
     
     // MARK: - Playback Progress (Managed by SoundManager)

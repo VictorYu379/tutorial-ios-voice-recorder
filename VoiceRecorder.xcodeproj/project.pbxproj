@@ -13,6 +13,7 @@
 		3DA2D97D220B71D400D8EA35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3DA2D97C220B71D400D8EA35 /* Assets.xcassets */; };
 		3DA2D980220B71D400D8EA35 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3DA2D97E220B71D400D8EA35 /* LaunchScreen.storyboard */; };
 		F18A383D2DD10CEB00A25F71 /* MainPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18A383C2DD10CEB00A25F71 /* MainPageController.swift */; };
+		F18A383F2DD40CAF00A25F71 /* VoiceConversionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18A383E2DD40CAF00A25F71 /* VoiceConversionManager.swift */; };
 		F1C93DC62DC5AE3F00EA26BE /* MainPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C93DC52DC5AE3F00EA26BE /* MainPage.swift */; };
 		F1C93DC82DC69A2A00EA26BE /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C93DC72DC69A2A00EA26BE /* Track.swift */; };
 		F1C93DCA2DC69A7000EA26BE /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C93DC92DC69A7000EA26BE /* SoundManager.swift */; };
@@ -27,6 +28,7 @@
 		3DA2D97F220B71D400D8EA35 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3DA2D981220B71D400D8EA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F18A383C2DD10CEB00A25F71 /* MainPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPageController.swift; sourceTree = "<group>"; };
+		F18A383E2DD40CAF00A25F71 /* VoiceConversionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceConversionManager.swift; sourceTree = "<group>"; };
 		F1C93DC52DC5AE3F00EA26BE /* MainPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPage.swift; sourceTree = "<group>"; };
 		F1C93DC72DC69A2A00EA26BE /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		F1C93DC92DC69A7000EA26BE /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 				3DA2D97E220B71D400D8EA35 /* LaunchScreen.storyboard */,
 				3DA2D981220B71D400D8EA35 /* Info.plist */,
 				F1C93DC52DC5AE3F00EA26BE /* MainPage.swift */,
+				F18A383E2DD40CAF00A25F71 /* VoiceConversionManager.swift */,
 				F18A383C2DD10CEB00A25F71 /* MainPageController.swift */,
 				F1C93DC72DC69A2A00EA26BE /* Track.swift */,
 				F1C93DC92DC69A7000EA26BE /* SoundManager.swift */,
@@ -152,6 +155,7 @@
 				3DA2D973220B71D300D8EA35 /* AppDelegate.swift in Sources */,
 				F18A383D2DD10CEB00A25F71 /* MainPageController.swift in Sources */,
 				F1C93DC82DC69A2A00EA26BE /* Track.swift in Sources */,
+				F18A383F2DD40CAF00A25F71 /* VoiceConversionManager.swift in Sources */,
 				F1C93DCA2DC69A7000EA26BE /* SoundManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -301,7 +305,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = KNRNXU63VH;
 				INFOPLIST_FILE = VoiceRecorder/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -320,7 +324,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = KNRNXU63VH;
 				INFOPLIST_FILE = VoiceRecorder/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

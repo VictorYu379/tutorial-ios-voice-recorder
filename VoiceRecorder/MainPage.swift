@@ -10,6 +10,7 @@ import SwiftUI
 
 struct MainPage: View {
     @StateObject private var controller = MainPageController()
+    @State private var showSlidersMenu = false
     
     var body: some View {
         VStack {
@@ -25,6 +26,7 @@ struct MainPage: View {
                 Spacer()
                 Button(action: {
                     print("Sliders button tapped")
+                    showSlidersMenu = true
                 }) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 30))
@@ -34,17 +36,18 @@ struct MainPage: View {
                     print("Recorder button tapped")
                     controller.toggleOverdub()
                 }) {
-                    Image(systemName: controller.isRecording ? "stop.fill" : "record.circle")
+                    Image(systemName: controller.isRecordMode ? "stop.fill" : "record.circle")
                         .font(.system(size: 30))
                         .foregroundColor(.red)
                 }
             }
+            .frame(maxHeight: 60)
             .padding()
 
             VStack{
-                TrackView(track: controller.getTrack(id: 1), trackNumber: 1, focused: $controller.focusedTrack).padding(.bottom, 20)
-                TrackView(track: controller.getTrack(id: 2), trackNumber: 2, focused: $controller.focusedTrack).padding(.bottom, 20)
-                TrackView(track: controller.getTrack(id: 3), trackNumber: 3, focused: $controller.focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack).padding(.bottom, 20)
+                TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack).padding(.bottom, 20)
             }
             .padding(.vertical)
 
@@ -75,7 +78,7 @@ struct MainPage: View {
                     print("play/pause button tapped")
                     controller.togglePlayback()
                 }) {
-                    Image(systemName: controller.isPlaying ? "pause.fill" : "play.fill")
+                    Image(systemName: controller.isPlaybackMode ? "pause.fill" : "play.fill")
                         .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
                 }
 
@@ -93,26 +96,41 @@ struct MainPage: View {
         }
         .padding(.bottom, 50)
         .padding(.horizontal, 20)
+        
+        // 3) attach the sheet here
+        .sheet(isPresented: $showSlidersMenu) {
+            SlidersMenuView(track: controller.getTrack(id: controller.focusedTrack))
+                .environmentObject(controller)
+                .presentationDetents([.fraction(0.5)])   // exactly half screen
+                .presentationDragIndicator(.visible)      // shows the grab bar
+        }
     }
 }
 
 struct TrackView: View {
-    var track: Track
-    let trackNumber: Int
+    @StateObject var track: Track
     var hasWaveform: Bool = false
     @Binding var focused: Int
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text("Track \(trackNumber)")
+            Text("Track \(track.id)")
                 .font(.headline)
                 .padding(.leading)
             RoundedRectangle(cornerRadius: 10)
-                .fill(focused == trackNumber ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
+                .fill(focused == track.id ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
                 .frame(height: 60)
                 .overlay(
                     Group {
-                        if track.state == .hasContent {
+                        if track.isMuted {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "speaker.slash.fill")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                        } else if track.state == .hasContent {
                             HStack {
                                 Spacer()
                                 Image(systemName: "waveform.and.mic")
@@ -120,6 +138,12 @@ struct TrackView: View {
                                     .foregroundColor(.gray)
                                 Spacer()
                             }
+                        } else if track.state == .recording {
+                            Text("Recording")
+                                .foregroundColor(.gray)
+                        } else if track.state == .playing {
+                            Text("Playing")
+                                .foregroundColor(.gray)
                         } else {
                             Text("Empty")
                                 .foregroundColor(.gray)
@@ -128,10 +152,83 @@ struct TrackView: View {
                 )
                 .padding(.horizontal)
                 .onTapGesture {
-                    focused = trackNumber
+                    focused = track.id
                 }
         }
         .padding(.bottom, 8)
+    }
+}
+
+struct SlidersMenuView: View {
+    @StateObject var track: Track
+    @EnvironmentObject var controller: MainPageController
+    
+    // choose a width that fits both "Mute" and "Unmute"
+    private let pillWidth: CGFloat = 100
+    private let pillHeight: CGFloat = 40
+    
+    var body: some View {
+        VStack {
+            Text("Track \(track.id)")
+                .font(.headline)
+                .padding()
+            
+            // — Volume Slider
+            VStack(alignment: .leading) {
+                Text("Volume")
+                    .font(.subheadline)
+                Slider(
+                    value: Binding(
+                        get: { track.volume },
+                        set: { newVal in
+                            track.volume = newVal
+                        }
+                    ),
+                    in: 0...1
+                )
+                .disabled(track.isMuted)
+                .opacity(track.isMuted ? 0.5 : 1)
+            }
+            .padding()
+            
+            HStack(spacing: 40) {
+                // — Mute/Unmute
+                Button {
+                    controller.toggleMute(id: track.id)
+                } label: {
+                    Text(track.isMuted ? "Unmute" : "Mute")
+                        .font(.headline)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .background(
+                            Capsule()
+                                .fill(controller
+                                  .getTrack(id: track.id)
+                                  .isMuted
+                                ? Color.yellow.opacity(0.2)
+                                : Color.gray.opacity(0.2)
+                            )
+                        )
+                        .foregroundColor(.primary)
+                }
+
+                // Delete button
+                Button {
+                    controller.deleteAudio(id: track.id)
+                } label: {
+                    Text("Delete")
+                        .font(.headline)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .background(
+                            Capsule()
+                                .fill(Color.red.opacity(0.2))
+                        )
+                        .foregroundColor(.red)
+                }
+            }
+            .padding()
+
+            Spacer()
+        }
     }
 }
 
