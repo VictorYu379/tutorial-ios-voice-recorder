@@ -33,7 +33,7 @@ class Track: ObservableObject {
     }
     
     class func getAudioFileURL(_ id: Int) -> URL {
-        return getDocumentsDirectory().appendingPathComponent("recording_" + String(id) + ".m4a")
+        return getDocumentsDirectory().appendingPathComponent("recording_\(id).wav")
     }
     
     func updateState(_ newState: TrackState) {
@@ -158,5 +158,9 @@ class Track: ObservableObject {
     
     func getAudioFormat() -> AVAudioFormat? {
         return audioFile?.processingFormat
+    }
+    
+    func getURL() -> URL {
+        return audioFileUrl
     }
 }

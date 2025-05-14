@@ -18,6 +18,7 @@ struct MainPage: View {
             HStack {
                 Button(action: {
                     print("Metronome button tapped")
+                    controller.getVoiceModel()
                 }) {
                     Image(systemName: "metronome")
                         .font(.system(size: 30))
@@ -43,16 +44,16 @@ struct MainPage: View {
             }
             .frame(maxHeight: 60)
             .padding()
-
+            
             VStack{
                 TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack).padding(.bottom, 20)
                 TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack).padding(.bottom, 20)
                 TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack).padding(.bottom, 20)
             }
             .padding(.vertical)
-
+            
             Spacer()
-
+            
             // Bottom Controls
             HStack {
                 Button(action: {
@@ -61,9 +62,9 @@ struct MainPage: View {
                     Image(systemName: "backward")
                         .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
                 }
-
+                
                 Spacer()
-
+                
                 Button(action: {
                     print("skip back button tapped")
                 }) {
@@ -71,9 +72,9 @@ struct MainPage: View {
                         .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
                         .padding(8)
                 }
-
+                
                 Spacer()
-
+                
                 Button(action: {
                     print("play/pause button tapped")
                     controller.togglePlayback()
@@ -81,9 +82,9 @@ struct MainPage: View {
                     Image(systemName: controller.isPlaybackMode ? "pause.fill" : "play.fill")
                         .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
                 }
-
+                
                 Spacer()
-
+                
                 Button(action: {
                     print("skip forward button tapped")
                 }) {
@@ -101,7 +102,7 @@ struct MainPage: View {
         .sheet(isPresented: $showSlidersMenu) {
             SlidersMenuView(track: controller.getTrack(id: controller.focusedTrack))
                 .environmentObject(controller)
-                .presentationDetents([.fraction(0.5)])   // exactly half screen
+                .presentationDetents([.fraction(0.7)])   // exactly half screen
                 .presentationDragIndicator(.visible)      // shows the grab bar
         }
     }
@@ -111,7 +112,7 @@ struct TrackView: View {
     @StateObject var track: Track
     var hasWaveform: Bool = false
     @Binding var focused: Int
-
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text("Track \(track.id)")
@@ -202,15 +203,15 @@ struct SlidersMenuView: View {
                         .background(
                             Capsule()
                                 .fill(controller
-                                  .getTrack(id: track.id)
-                                  .isMuted
-                                ? Color.yellow.opacity(0.2)
-                                : Color.gray.opacity(0.2)
-                            )
+                                    .getTrack(id: track.id)
+                                    .isMuted
+                                      ? Color.yellow.opacity(0.2)
+                                      : Color.gray.opacity(0.2)
+                                )
                         )
                         .foregroundColor(.primary)
                 }
-
+                
                 // Delete button
                 Button {
                     controller.deleteAudio(id: track.id)
@@ -226,7 +227,24 @@ struct SlidersMenuView: View {
                 }
             }
             .padding()
-
+            
+            HStack(spacing: 40) {
+                // — Convert
+                Button {
+                    controller.convertAudio(id: track.id)
+                } label: {
+                    Text("Convert")
+                        .font(.headline)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.2))
+                        )
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding()
+            
             Spacer()
         }
     }

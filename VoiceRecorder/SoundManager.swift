@@ -1,6 +1,8 @@
 import Foundation
 import AVFoundation
 
+// TODO: need to implement time progress and recording timer
+
 class SoundManager: NSObject, AVAudioRecorderDelegate {
     private var audioRecorder: AVAudioRecorder!
     private var audioEngine: AVAudioEngine!
@@ -72,8 +74,6 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
 
         if let currentInput = session.currentRoute.inputs.first {
             print("Current Input: \(currentInput.portName) (Type: \(currentInput.portType.rawValue))")
-//            print("Input Preferred Sample Rate: \(currentInput.preferredSampleRate)")
-//            print("Input Preferred Channels: \(currentInput.preferredNumberOfChannels)")
         } else {
             print("No current input route.")
         }
@@ -91,11 +91,6 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
     class func getStartTime() -> (recordAt: AVAudioTime, playAt: AVAudioTime) {
         let baseDelay: TimeInterval = 0.1
         let delta = 0.35
-        
-//        let session = AVAudioSession.sharedInstance()
-//        // These are in seconds
-//        let inLatency  = session.inputLatency
-//        let outLatency = session.outputLatency
         
         // If playback is slower (outLatency > inLatency), start playback earlier by that delta
         print("delta between input and output: \(delta)")
@@ -122,15 +117,17 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         
         // Use trackNumber to construct the recording URL
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let recordingURL = documentsDirectory.appendingPathComponent("recording_\(trackNumber).m4a") // Consistent naming
+        let recordingURL = documentsDirectory.appendingPathComponent("recording_\(trackNumber).wav") // Consistent naming
 
         do {
-            let recordSettings = [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: 44100.0,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ] as [String : Any]
+            let recordSettings: [String: Any] = [
+              AVFormatIDKey:   kAudioFormatLinearPCM,
+              AVSampleRateKey: 44100.0,
+              AVNumberOfChannelsKey: 1,
+              AVLinearPCMBitDepthKey: 16,
+              AVLinearPCMIsBigEndianKey:   false,
+              AVLinearPCMIsFloatKey:       false
+            ]
             audioRecorder = try AVAudioRecorder(url: recordingURL, settings: recordSettings)
             audioRecorder?.delegate = self
             audioRecorder?.prepareToRecord()
@@ -160,11 +157,6 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         print("Recording at \(startTime)")
         let seconds: TimeInterval = AVAudioTime.seconds(forHostTime: startTime.hostTime)
         audioRecorder.record(atTime: seconds)
-//        // Notify when recording *actually* starts
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-//            self?.hasStartedRecording = true // Set this when recording begins
-//            print("Recording actually started.")
-//        }
         
         isRecording = true // Set the recording state *before* scheduling
         tracks[trackNumber]?.state = .recording
