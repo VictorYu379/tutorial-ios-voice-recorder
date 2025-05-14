@@ -16,6 +16,7 @@ class Track: ObservableObject {
     @Published var isMuted: Bool = false
     var audioFileUrl: URL // URL to the audio file
     var volume: Float = 1.0
+    @Published var convertedModelId: Int?
     
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
@@ -23,6 +24,7 @@ class Track: ObservableObject {
     // MARK: - Initialization
     init(id: Int) {
         self.id = id
+        self.convertedModelId = nil
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
         self.audioFileUrl = Track.getAudioFileURL(id)
@@ -145,6 +147,27 @@ class Track: ObservableObject {
         }
     }
     
+    func checkConversion(modelId: Int) -> Bool {
+        var conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
+        
+        if FileManager.default.fileExists(atPath: conversionURL.path) {
+            return true
+        } else {
+            print("file not exists in url: \(audioFileUrl)")
+            return false
+        }
+    }
+    
+    func useConversion(modelId: Int) {
+        convertedModelId = modelId
+        audioFileUrl = getConvertedURL(modelId: modelId)
+    }
+    
+    func useOriginal() {
+        convertedModelId = nil
+        audioFileUrl = getURL()
+    }
+    
     // MARK: - Playback Progress (Managed by SoundManager)
     var currentPlayheadTime: TimeInterval = 0.0 // SoundManager will update this
     
@@ -162,5 +185,9 @@ class Track: ObservableObject {
     
     func getURL() -> URL {
         return audioFileUrl
+    }
+    
+    func getConvertedURL(modelId: Int) -> URL {
+        getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
     }
 }

@@ -28,6 +28,8 @@ enum DownloadError: Error {
 class VoiceConversionManager {
     let API_KEY = "sJ8_EsQ8.Shd-YuikyGhOMHY8UY8zzbLm"
     
+    private var pollTimer: Timer?
+    
     func fetchVoiceModels(page: Int, completion: @escaping (Result<[VoiceModel], Error>) -> Void) {
         var components = URLComponents(string: "https://arpeggi.io/api/kits/v1/voice-models")!
         components.queryItems = [
@@ -62,8 +64,61 @@ class VoiceConversionManager {
         print("sent HTTP request")
     }
     
-    func startVoiceConversion(
+    func convert(
         fileURL: URL,
+        convertedFileURL: URL,
+        trackId: Int,
+        modelId: Int,
+        pollInterval: TimeInterval = 2.0,
+        completion: @escaping (Result<URL, Error>) -> Void
+    ) {
+        startVoiceConversion(fileURL: fileURL, convertedFileURL: convertedFileURL, modelId: modelId) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .failure(let err):
+                completion(.failure(err))
+                
+            case .success(let jobId):
+                print("conversion call successful, job id \(jobId)")
+                
+                // 2) schedule your timer on the main run loop
+                DispatchQueue.main.async {
+                    // invalidate any existing timer
+                    self.pollTimer?.invalidate()
+                    
+                    self.pollTimer = Timer(timeInterval: pollInterval, repeats: true) { _ in
+                        print("fetching conversion...")
+                        
+                        self.fetchConversion(jobId: jobId) { fetchResult in
+                            switch fetchResult {
+                            case .failure:
+                                // not ready yet—keep polling
+                                break
+                                
+                            case .success(let remoteURL):
+                                // stop polling
+                                self.pollTimer?.invalidate()
+                                self.pollTimer = nil
+                                
+                                print("will call download")
+                                self.downloadWav(from: remoteURL, to: convertedFileURL) { downloadResult in
+                                    completion(downloadResult)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 3) add it to the main run loop in common modes
+                    RunLoop.main.add(self.pollTimer!, forMode: .common)
+                }
+            }
+        }
+    }
+    
+    private func startVoiceConversion(
+        fileURL: URL,
+        convertedFileURL: URL,
+        modelId: Int,
         completion: @escaping (Result<Int, Error>) -> Void
     ) {
         let url = URL(string: "https://arpeggi.io/api/kits/v1/voice-conversions")!
@@ -78,7 +133,7 @@ class VoiceConversionManager {
         // build HTTP body
         var body = Data()
         let params: [String: String] = [
-            "voiceModelId": "1304810",
+            "voiceModelId": String(modelId),
             "conversionStrength": "0.5",
             "modelVolumeMix": "0.5",
             "pitchShift": "0"
@@ -144,7 +199,6 @@ class VoiceConversionManager {
                 }
                 // Accept String, Number, or anything that can be stringified
                 if let rawId = json["id"], let intId = rawId as? Int {
-//                    let jobId = String(describing: rawId)
                     completion(.success(intId))
                 } else {
                     completion(.failure(NSError(domain: "", code: 0,
@@ -156,7 +210,7 @@ class VoiceConversionManager {
         }.resume()
     }
     
-    func fetchConversion(
+    private func fetchConversion(
         jobId: Int,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
@@ -205,16 +259,15 @@ class VoiceConversionManager {
         .resume()
     }
     
-    func downloadWav(
+    private func downloadWav(
         from remoteURL: URL,
-        fileName: String,
+        to destURL: URL,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
         // 1) Determine destination folder & file URL
         let fileManager = FileManager.default
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let folderURL = docs.appendingPathComponent("ConvertedWavs")
-        let destURL = folderURL.appendingPathComponent(fileName)
         
         // 2) Ensure the folder exists
         do {

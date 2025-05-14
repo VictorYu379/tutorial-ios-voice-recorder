@@ -10,7 +10,7 @@ import SwiftUI
 
 struct MainPage: View {
     @StateObject private var controller = MainPageController()
-    @State private var showSlidersMenu = false
+    @State private var showSlidersMenu = true
     
     var body: some View {
         VStack {
@@ -228,25 +228,84 @@ struct SlidersMenuView: View {
             }
             .padding()
             
-            HStack(spacing: 40) {
-                // — Convert
-                Button {
-                    controller.convertAudio(id: track.id)
-                } label: {
-                    Text("Convert")
-                        .font(.headline)
-                        .frame(width: pillWidth, height: pillHeight)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.2))
-                        )
-                        .foregroundColor(.blue)
+            VStack(spacing: 20) {
+                HStack(spacing: 40) {
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 1304810)
+                    } label: {
+                        Text("Violin")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 1304810
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 1331486)
+                    } label: {
+                        Text("Electric Guitar")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 1331486
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 1331492)
+                    } label: {
+                        Text("Flute")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 1331492
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
                 }
+                .padding()
+                
+                
+                HStack(spacing: 40) {
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 1304790)
+                    } label: {
+                        Text("Metal Guitar")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 1304790
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding()
             }
-            .padding()
             
             Spacer()
         }
+        .padding()
     }
 }
 

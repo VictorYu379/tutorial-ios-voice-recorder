@@ -10,7 +10,6 @@ class MainPageController: ObservableObject {
     
     private var pageNum: Int = 1
     private var pollTimer: Timer?
-    private var currentJobId: Int?
     
     init() {
         self.tracks = [
@@ -91,70 +90,40 @@ class MainPageController: ObservableObject {
         pageNum = pageNum + 1
     }
     
-    func convertAudio(id: Int) {
-        guard let track = tracks[id] else { return }
+    func convertAudio(trackId: Int, modelId: Int) {
+        guard let track = tracks[trackId] else { return }
         
-        // 1) start the conversion
-        voiceConversionManager.startVoiceConversion(fileURL: track.getURL()) { [weak self] result in
+        if track.convertedModelId == modelId {
+            track.useOriginal()
+            print("will restore to original audio")
+            return
+        }
+        
+        if track.checkConversion(modelId: modelId) {
+            track.useConversion(modelId: modelId)
+            print("will use existing conversion")
+            return
+        }
+        
+        print("conversion not existing, will call API")
+        // one-liner now!
+        voiceConversionManager.convert(
+            fileURL: track.getURL(),
+            convertedFileURL: track.getConvertedURL(modelId: modelId),
+            trackId: trackId,
+            modelId: modelId
+        ) { [weak self] downloadResult in
             DispatchQueue.main.async {
-                switch result {
-                case .success(let jobId):
-                    print("Job ID: \(jobId)")
-                    self?.currentJobId = jobId
-                    // 2) begin polling every 5s
-                    self?.startPollingForConversion()
-                    
+                switch downloadResult {
                 case .failure(let err):
-                    print("Conversion error:", err)
+                    print("Conversion failed:", err)
+                    
+                case .success(let localURL):
+                    print("Converted WAV saved to:", localURL.path)
+                    // finally apply it to the track:
+                    self?.tracks[trackId]?.useConversion(modelId: modelId)
                 }
             }
         }
-    }
-    
-    private func startPollingForConversion() {
-        // invalidate any previous timer
-        pollTimer?.invalidate()
-        
-        // schedule a new one
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            guard let self = self, let jobId = self.currentJobId else { return }
-            self.checkConversion(jobId: jobId)
-        }
-    }
-    
-    private func checkConversion(jobId: Int) {
-        voiceConversionManager.fetchConversion(jobId: jobId) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let fileURL):
-                    print("Conversion ready at URL:", fileURL)
-                    // stop polling
-                    self?.pollTimer?.invalidate()
-                    self?.pollTimer = nil
-                    
-                    // download the file
-                    let fileName = "converted_recording_\(self!.focusedTrack).wav"
-                    self?.voiceConversionManager.downloadWav(from: fileURL, fileName: fileName) { downloadResult in
-                        DispatchQueue.main.async {
-                            switch downloadResult {
-                            case .success(let localURL):
-                                print("Saved WAV to:", localURL.path)
-                                self?.changeToConvertedURL(url: localURL)
-                            case .failure(let err):
-                                print("Download/save error:", err)
-                            }
-                        }
-                    }
-                    
-                case .failure(let err):
-                    print("Still not ready (or error):", err)
-                    // we keep polling
-                }
-            }
-        }
-    }
-    
-    private func changeToConvertedURL(url: URL) {
-        tracks[focusedTrack]?.audioFileUrl = url
     }
 }
