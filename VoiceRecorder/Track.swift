@@ -134,6 +134,7 @@ class Track: ObservableObject {
             do {
                 try FileManager.default.removeItem(at: audioFileUrl)
                 print("Deleted file at \(audioFileUrl.lastPathComponent)")
+                self.deleteConvertedFiles(withPrefix: "recording_\(id)")
                 state = .empty
                 isMuted = false
                 playerNode?.reset()
@@ -144,6 +145,35 @@ class Track: ObservableObject {
             }
         } else {
             print("No file to delete at \(audioFileUrl.path)")
+        }
+    }
+    
+    private func deleteConvertedFiles(withPrefix prefix: String) {
+        let fileManager = FileManager.default
+        let folderURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs")
+        
+        do {
+            // 1) List everything in the folder
+            let files = try fileManager.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: nil,
+                options: []
+            )
+            
+            // 2) Filter those whose filename begins with your prefix
+            let matching = files.filter { $0.lastPathComponent.hasPrefix(prefix) }
+            
+            // 3) Remove each one
+            for fileURL in matching {
+                do {
+                    try fileManager.removeItem(at: fileURL)
+                    print("Deleted:", fileURL.lastPathComponent)
+                } catch {
+                    print("Failed to delete \(fileURL.lastPathComponent):", error)
+                }
+            }
+        } catch {
+            print("Couldn’t list directory:", error)
         }
     }
     
@@ -165,7 +195,7 @@ class Track: ObservableObject {
     
     func useOriginal() {
         convertedModelId = nil
-        audioFileUrl = getURL()
+        audioFileUrl = Track.getAudioFileURL(id)
     }
     
     // MARK: - Playback Progress (Managed by SoundManager)

@@ -10,100 +10,123 @@ import SwiftUI
 
 struct MainPage: View {
     @StateObject private var controller = MainPageController()
-    @State private var showSlidersMenu = true
     
     var body: some View {
-        VStack {
-            // Top Controls
-            HStack {
-                Button(action: {
-                    print("Metronome button tapped")
-                    controller.getVoiceModel()
-                }) {
-                    Image(systemName: "metronome")
-                        .font(.system(size: 30))
-                        .foregroundColor(.blue) // Set metronome to blue
+        ZStack {
+            VStack {
+                // Top Controls
+                HStack {
+                    let track = controller.getTrack(id: controller.focusedTrack)
+                    
+                    Button(action: {
+                        print("Metronome button tapped")
+                        controller.getVoiceModel()
+                    }) {
+                        Image(systemName: "metronome")
+                            .font(.system(size: 30))
+                    }
+                    .disabled(true)
+                    Spacer()
+                    Button(action: {
+                        print("Sliders button tapped")
+                        controller.showSlidersMenu = true
+                    }) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 30))
+                            .foregroundColor(.blue) // Set sliders to blue
+                    }
+                    Button(action: {
+                        print("Recorder button tapped")
+                        controller.toggleOverdub()
+                    }) {
+                        Image(systemName: controller.isRecordMode ? "stop.fill" : "record.circle")
+                            .font(.system(size: 30))
+                            .foregroundColor((!controller.isRecordMode && track.state != .empty) ? .gray : .red)
+                    }
+                    .disabled(!controller.isRecordMode && track.state != .empty)
+                    .opacity((!controller.isRecordMode && track.state != .empty) ? 0.5 : 1.0)
                 }
+                .frame(maxHeight: 60)
+                .padding()
+                
+                VStack{
+                    TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack).padding(.bottom, 20)
+                    TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack).padding(.bottom, 20)
+                    TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack).padding(.bottom, 20)
+                }
+                .padding(.vertical)
+                
                 Spacer()
-                Button(action: {
-                    print("Sliders button tapped")
-                    showSlidersMenu = true
-                }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 30))
-                        .foregroundColor(.blue) // Set sliders to blue
+                
+                // Bottom Controls
+                HStack {
+                    Button(action: {
+                        print("backward button tapped")
+                    }) {
+                        Image(systemName: "backward")
+                            .font(.system(size: 30, weight: .semibold))
+                    }
+                    .disabled(true)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        print("skip back button tapped")
+                    }) {
+                        Image(systemName: "gobackward.10")
+                            .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
+                            .padding(8)
+                    }
+                    .disabled(true)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        print("play/pause button tapped")
+                        controller.togglePlayback()
+                    }) {
+                        Image(systemName: controller.isPlaybackMode ? "pause.fill" : "play.fill")
+                            .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        print("skip forward button tapped")
+                    }) {
+                        Image(systemName: "goforward.10")
+                            .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
+                            .padding(8)
+                    }
+                    .disabled(true)
                 }
-                Button(action: {
-                    print("Recorder button tapped")
-                    controller.toggleOverdub()
-                }) {
-                    Image(systemName: controller.isRecordMode ? "stop.fill" : "record.circle")
-                        .font(.system(size: 30))
-                        .foregroundColor(.red)
-                }
+                .padding(.horizontal)
             }
-            .frame(maxHeight: 60)
-            .padding()
+            .padding(.bottom, 50)
+            .padding(.horizontal, 20)
             
-            VStack{
-                TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack).padding(.bottom, 20)
-                TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack).padding(.bottom, 20)
-                TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack).padding(.bottom, 20)
+            
+//             3) attach the sheet here
+            .sheet(isPresented: $controller.showSlidersMenu) {
+                SlidersMenuView(track: controller.getTrack(id: controller.focusedTrack))
+                    .environmentObject(controller)
+                    .presentationDetents([.fraction(0.7)])   // exactly half screen
+                    .presentationDragIndicator(.visible)      // shows the grab bar
             }
-            .padding(.vertical)
             
-            Spacer()
-            
-            // Bottom Controls
-            HStack {
-                Button(action: {
-                    print("backward button tapped")
-                }) {
-                    Image(systemName: "backward")
-                        .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
-                }
+            // ── Simple Spinner Overlay ──
+            if controller.isConverting {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
                 
-                Spacer()
-                
-                Button(action: {
-                    print("skip back button tapped")
-                }) {
-                    Image(systemName: "gobackward.10")
-                        .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
-                        .padding(8)
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    print("play/pause button tapped")
-                    controller.togglePlayback()
-                }) {
-                    Image(systemName: controller.isPlaybackMode ? "pause.fill" : "play.fill")
-                        .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    print("skip forward button tapped")
-                }) {
-                    Image(systemName: "goforward.10")
-                        .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
-                        .padding(8)
-                }
+                ProgressView("Converting…")
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .foregroundColor(.white)
+                    .padding(24)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(radius: 10)
             }
-            .padding(.horizontal)
-        }
-        .padding(.bottom, 50)
-        .padding(.horizontal, 20)
-        
-        // 3) attach the sheet here
-        .sheet(isPresented: $showSlidersMenu) {
-            SlidersMenuView(track: controller.getTrack(id: controller.focusedTrack))
-                .environmentObject(controller)
-                .presentationDetents([.fraction(0.7)])   // exactly half screen
-                .presentationDragIndicator(.visible)      // shows the grab bar
         }
     }
 }
@@ -232,6 +255,7 @@ struct SlidersMenuView: View {
                 HStack(spacing: 40) {
                     Button {
                         controller.convertAudio(trackId: track.id, modelId: 1304810)
+                        controller.showSlidersMenu = false
                     } label: {
                         Text("Violin")
                             .font(.headline)
@@ -248,6 +272,7 @@ struct SlidersMenuView: View {
                     }
                     Button {
                         controller.convertAudio(trackId: track.id, modelId: 1331486)
+                        controller.showSlidersMenu = false
                     } label: {
                         Text("Electric Guitar")
                             .font(.headline)
@@ -264,6 +289,7 @@ struct SlidersMenuView: View {
                     }
                     Button {
                         controller.convertAudio(trackId: track.id, modelId: 1331492)
+                        controller.showSlidersMenu = false
                     } label: {
                         Text("Flute")
                             .font(.headline)
@@ -285,6 +311,7 @@ struct SlidersMenuView: View {
                 HStack(spacing: 40) {
                     Button {
                         controller.convertAudio(trackId: track.id, modelId: 1304790)
+                        controller.showSlidersMenu = false
                     } label: {
                         Text("Metal Guitar")
                             .font(.headline)
@@ -299,11 +326,48 @@ struct SlidersMenuView: View {
                             )
                             .foregroundColor(.blue)
                     }
+                    
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 201084)
+                        controller.showSlidersMenu = false
+                    } label: {
+                        Text("Cello")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 201084
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Button {
+                        controller.convertAudio(trackId: track.id, modelId: 1312985)
+                        controller.showSlidersMenu = false
+                    } label: {
+                        Text("Saxophone")
+                            .font(.headline)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .background(
+                                Capsule()
+                                    .fill(controller
+                                        .getTrack(id: track.id).convertedModelId == 1312985
+                                          ? Color.yellow.opacity(0.2)
+                                          : Color.gray.opacity(0.2)
+                                    )
+                            )
+                            .foregroundColor(.blue)
+                    }
                 }
                 .padding()
             }
             
             Spacer()
+            
         }
         .padding()
     }

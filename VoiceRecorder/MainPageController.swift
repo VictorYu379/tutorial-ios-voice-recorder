@@ -4,6 +4,8 @@ class MainPageController: ObservableObject {
     @Published var focusedTrack: Int = 1
     @Published var isRecordMode = false
     @Published var isPlaybackMode = false
+    @Published var isConverting: Bool = false
+    @Published var showSlidersMenu: Bool = false
     private var tracks: [Int: Track]
     private var soundManager: SoundManager
     private var voiceConversionManager: VoiceConversionManager
@@ -69,6 +71,9 @@ class MainPageController: ObservableObject {
             return
         }
         track.reset()
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
     }
     
     func getTrack(id: Int) -> Track {
@@ -105,6 +110,8 @@ class MainPageController: ObservableObject {
             return
         }
         
+        self.isConverting = true
+        
         print("conversion not existing, will call API")
         // one-liner now!
         voiceConversionManager.convert(
@@ -122,6 +129,8 @@ class MainPageController: ObservableObject {
                     print("Converted WAV saved to:", localURL.path)
                     // finally apply it to the track:
                     self?.tracks[trackId]?.useConversion(modelId: modelId)
+                    self?.isConverting = false
+                    self?.showSlidersMenu = true
                 }
             }
         }
