@@ -178,7 +178,7 @@ class Track: ObservableObject {
     }
     
     func checkConversion(modelId: Int) -> Bool {
-        var conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
+        let conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
         
         if FileManager.default.fileExists(atPath: conversionURL.path) {
             return true
@@ -219,5 +219,63 @@ class Track: ObservableObject {
     
     func getConvertedURL(modelId: Int) -> URL {
         getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
+    }
+    
+    // MARK: - Audio Duration and Seeking Methods
+    
+    func getAudioDuration() -> Double? {
+        guard let audioFile = audioFile else {
+            // Try to load the audio file to get duration
+            do {
+                if FileManager.default.fileExists(atPath: audioFileUrl.path) {
+                    let tempAudioFile = try AVAudioFile(forReading: audioFileUrl)
+                    let duration = Double(tempAudioFile.length) / tempAudioFile.fileFormat.sampleRate
+                    return duration
+                }
+            } catch {
+                print("Track \(id): Error loading audio file for duration: \(error)")
+            }
+            return nil
+        }
+        
+        let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
+        return duration
+    }
+    
+    func seekAndSchedulePlayback(at time: AVAudioTime, seekTime: Double) {
+        guard !isMuted else {
+            print("Track \(id): Track is muted, cannot prepare for playback")
+            return
+        }
+        
+        guard let playerNode = playerNode, let audioFile = audioFile else {
+            print("Track \(id): Cannot play, audio file not loaded")
+            return
+        }
+        
+        if playerNode.isPlaying {
+            playerNode.stop()
+        }
+        
+        // Calculate the frame position to start from
+        let sampleRate = audioFile.fileFormat.sampleRate
+        let startFrame = AVAudioFramePosition(seekTime * sampleRate)
+        let frameCount = audioFile.length - startFrame
+        
+        guard startFrame >= 0 && startFrame < audioFile.length else {
+            print("Track \(id): Seek time out of bounds")
+            return
+        }
+        
+        playerNode.volume = volume
+        
+        // Schedule the file segment starting from the seek position
+        playerNode.scheduleSegment(audioFile, startingFrame: startFrame, frameCount: AVAudioFrameCount(frameCount), at: time) {
+            print("Track \(self.id): Finished playing from seek position")
+        }
+        
+        playerNode.play()
+        state = .playing
+        print("Track \(id): Playing from \(seekTime) seconds at \(time)")
     }
 }

@@ -39,12 +39,12 @@ struct MainPage: View {
                         print("Recorder button tapped")
                         controller.toggleOverdub()
                     }) {
-                        Image(systemName: controller.isRecordMode ? "stop.fill" : "record.circle")
+                        Image(systemName: controller.state == .recording ? "stop.fill" : "record.circle")
                             .font(.system(size: 30))
-                            .foregroundColor((!controller.isRecordMode && track.state != .empty) ? .gray : .red)
+                            .foregroundColor((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? .gray : .red)
                     }
-                    .disabled(!controller.isRecordMode && track.state != .empty)
-                    .opacity((!controller.isRecordMode && track.state != .empty) ? 0.5 : 1.0)
+                    .disabled(controller.shouldDisableRecordButtons() || track.state == .hasContent)
+                    .opacity((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? 0.5 : 1.0)
                 }
                 .frame(maxHeight: 60)
                 .padding()
@@ -56,17 +56,31 @@ struct MainPage: View {
                 }
                 .padding(.vertical)
                 
+                // Progress Bar
+                AudioProgressBar(
+                    currentTime: $controller.currentTime,
+                    totalDuration: controller.totalDuration,
+                    isSeekingProgress: $controller.isSeekingProgress,
+                    onSeek: { time in
+                        controller.seekToTime(time)
+                    }
+                )
+                .disabled(controller.shouldDisablePlaybackButtons())
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                
                 Spacer()
                 
                 // Bottom Controls
                 HStack {
                     Button(action: {
-                        print("backward button tapped")
+                        print("back to start button tapped")
+                        controller.stopPlayback()
                     }) {
-                        Image(systemName: "backward")
+                        Image(systemName: "backward.end")
                             .font(.system(size: 30, weight: .semibold))
                     }
-                    .disabled(true)
+                    .disabled(controller.shouldDisablePlaybackButtons())
                     
                     Spacer()
                     
@@ -85,9 +99,10 @@ struct MainPage: View {
                         print("play/pause button tapped")
                         controller.togglePlayback()
                     }) {
-                        Image(systemName: controller.isPlaybackMode ? "pause.fill" : "play.fill")
+                        Image(systemName: controller.state == .playing ? "pause.fill" : "play.fill")
                             .font(.system(size: 30, weight: .semibold)) // Equivalent to largeTitle
                     }
+                    .disabled(controller.shouldDisablePlaybackButtons())
                     
                     Spacer()
                     
@@ -115,7 +130,7 @@ struct MainPage: View {
             }
             
             // ── Simple Spinner Overlay ──
-            if controller.isConverting {
+            if controller.state == .converting {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
                 
@@ -370,6 +385,49 @@ struct SlidersMenuView: View {
             
         }
         .padding()
+    }
+}
+
+struct AudioProgressBar: View {
+    @Binding var currentTime: Double
+    let totalDuration: Double
+    @Binding var isSeekingProgress: Bool
+    let onSeek: (Double) -> Void
+    
+    private func formatTime(_ time: Double) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Time labels
+            HStack {
+                Text(formatTime(currentTime))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(formatTime(totalDuration))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Progress slider using native Slider
+            Slider(
+                value: $currentTime,
+                in: 0...totalDuration,
+                onEditingChanged: { editing in
+                    if editing {
+                        isSeekingProgress = true
+                    } else {
+                        isSeekingProgress = false
+                        onSeek(currentTime)
+                    }
+                }
+            )
+            .accentColor(.blue)
+        }
     }
 }
 
