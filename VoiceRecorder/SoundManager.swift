@@ -317,9 +317,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         currentTime = 0.0
         resumeOffset = 0.0  // Reset offset
         
-        DispatchQueue.main.async {
-            self.delegate?.soundManagerDidFinishPlayback()
-        }
+        self.delegate?.soundManagerDidFinishPlayback()
     }
 
     func updateTotalDuration() {
@@ -341,7 +339,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
 
     private func startProgressTimer() {
         stopProgressTimer()
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             guard let self = self, !self.isSeekingProgress else { return }
             self.updateCurrentTime()
         }
@@ -368,10 +366,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         // Ensure current time doesn't exceed total duration
         currentTime = min(currentTime, totalDuration)
 
-        // Notify delegate of progress update
-        DispatchQueue.main.async {
-            self.delegate?.soundManagerDidUpdateProgress()
-        }
+        self.delegate?.soundManagerDidUpdateProgress()
         
         // If we've reached the end of the longest track, stop and reset to beginning
         if currentTime >= totalDuration {

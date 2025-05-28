@@ -45,8 +45,8 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
             stopOverdub()
             state = .idle
         } else {
-            state = .recording
             startOverdub()
+            state = .recording
         }
     }
     
@@ -79,6 +79,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         }
         track.reset()
         soundManager.updateTotalDuration()
+        soundManager.stopPlaying()
         DispatchQueue.main.async {
             self.objectWillChange.send()
         }
@@ -155,7 +156,6 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     // MARK: - SoundManagerDelegate
     func soundManagerDidUpdateProgress() {
         currentTime = soundManager.currentTime
-        totalDuration = soundManager.totalDuration
     }
     
     func soundManagerDidFinishPlayback() {
@@ -181,6 +181,9 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     }
 
     private func startOverdub() {
+        // first reset the tracks
+        soundManager.stopPlaying()
+
         if !soundManager.prepareForPlayback()
             || !soundManager.prepareToRecord(trackNumber: focusedTrack) {
             print("Overdub preparation failed")
