@@ -1,15 +1,31 @@
 import Foundation
 import AVFoundation
 
-// TODO: need to implement time progress and recording timer
+
+// In SoundManager.swift, add a delegate protocol:
+protocol SoundManagerDelegate: AnyObject {
+    func soundManagerDidUpdateProgress()
+    func soundManagerDidFinishPlayback()
+    func soundManagerDidUpdateTotalDuration()
+}
 
 class SoundManager: NSObject, AVAudioRecorderDelegate {
+    weak var delegate: SoundManagerDelegate?
+
+    var currentTime: Double = 0.0
+    var totalDuration: Double = 0.0
+
     private var audioRecorder: AVAudioRecorder!
     private var audioEngine: AVAudioEngine!
-    @Published var isRecording: Bool = false  // Track recording state
-    @Published var isPlaying: Bool = false // Track playback state
-    @Published var hasStartedRecording: Bool = false // New state for actual start
+    private var isRecording: Bool = false  // Track recording state
+    private var isPlaying: Bool = false // Track playback state
+    private var hasStartedRecording: Bool = false // New state for actual start
     private var tracks: [Int: Track]
+    
+    private var resumeOffset: Double = 0.0
+    private var progressTimer: Timer?
+
+    private var isSeekingProgress: Bool = false
 
     // MARK: - Initialization
     init(tracks: [Int: Track]) {
@@ -90,7 +106,8 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
 
     class func getStartTime() -> (recordAt: AVAudioTime, playAt: AVAudioTime) {
         let baseDelay: TimeInterval = 0.1
-        let delta = 0.35
+        // let delta = 0.35
+        let delta = 0.0
         
         // If playback is slower (outLatency > inLatency), start playback earlier by that delta
         print("delta between input and output: \(delta)")
@@ -243,6 +260,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         return true
     }
     
+    // Playback for overdub
     func startPlayback(at startTime: AVAudioTime, skippingTrack skipID: Int? = nil) {
         // get the time interval for playback start
         for track in tracks.values {
@@ -256,6 +274,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         isPlaying = true
     }
     
+    // Stop playback for overdub
     func stopPlayback() {
         // stop all player nodes
         for track in tracks.values {
@@ -265,4 +284,99 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         isPlaying = false
     }
 
+    // Pause playing
+    func pausePlaying() {
+        stopPlayback()
+        stopProgressTimer()
+        // Set the resume offset to current position
+        resumeOffset = currentTime
+    }
+    
+    // Resume playing
+    func resumePlaying() {
+        let startTime = SoundManager.getStartTime()
+        if !prepareForPlayback() {
+            print("Playback preparation failed")
+            return
+        }
+        
+        // Schedule tracks that have content at current position
+        for track in tracks.values {
+            if let trackDuration = track.getAudioDuration(), currentTime < trackDuration {
+                track.seekAndSchedulePlayback(at: startTime.playAt, seekTime: currentTime)
+            }
+        }
+        isPlaying = true
+        startProgressTimer()
+    }
+    
+    // Stop playing
+    func stopPlaying() {
+        stopPlayback()
+        stopProgressTimer()
+        currentTime = 0.0
+        resumeOffset = 0.0  // Reset offset
+        
+        DispatchQueue.main.async {
+            self.delegate?.soundManagerDidFinishPlayback()
+        }
+    }
+
+    func updateTotalDuration() {
+        var maxDuration: Double = 0.0
+        for track in tracks.values {
+            if track.state == .hasContent || track.state == .playing {
+                if let duration = track.getAudioDuration() {
+                    maxDuration = max(maxDuration, duration)
+                }
+            }
+        }
+        totalDuration = maxDuration
+
+        // Notify delegate of progress update
+        DispatchQueue.main.async {
+            self.delegate?.soundManagerDidUpdateTotalDuration()
+        }
+    }
+
+    private func startProgressTimer() {
+        stopProgressTimer()
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self, !self.isSeekingProgress else { return }
+            self.updateCurrentTime()
+        }
+    }
+    
+    private func stopProgressTimer() {
+        progressTimer?.invalidate()
+        progressTimer = nil
+    }
+    
+    private func updateCurrentTime() {
+        // Find any playing track to get the current time reference
+        for track in tracks.values {
+            if track.state == .playing, let playerNode = track.getPlayerNode() {
+                if let lastRenderTime = playerNode.lastRenderTime,
+                   let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime) {
+                    let elapsedTime = Double(playerTime.sampleTime) / playerTime.sampleRate
+                    currentTime = resumeOffset + elapsedTime
+                    break // Use the first playing track as reference
+                }
+            }
+        }
+        
+        // Ensure current time doesn't exceed total duration
+        currentTime = min(currentTime, totalDuration)
+
+        // Notify delegate of progress update
+        DispatchQueue.main.async {
+            self.delegate?.soundManagerDidUpdateProgress()
+        }
+        
+        // If we've reached the end of the longest track, stop and reset to beginning
+        if currentTime >= totalDuration {
+            print("Playback finished - resetting to beginning")
+            stopPlaying()
+        }
+    }
 }

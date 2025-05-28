@@ -8,24 +8,21 @@ enum AppState {
     case converting
 }
 
-class MainPageController: ObservableObject {
+class MainPageController: ObservableObject, SoundManagerDelegate {
     @Published var focusedTrack: Int = 1
     @Published var state: AppState = .idle
     @Published var showSlidersMenu: Bool = false
-    
-    // Progress tracking properties
     @Published var currentTime: Double = 0.0
     @Published var totalDuration: Double = 0.0
+    
+    // Progress tracking properties
     @Published var isSeekingProgress: Bool = false
     
     private var tracks: [Int: Track]
     private var soundManager: SoundManager
     private var voiceConversionManager: VoiceConversionManager
-    private var progressTimer: Timer?
     
     private var pageNum: Int = 1
-    private var pollTimer: Timer?
-    private var resumeOffset: Double = 0.0
     
     init() {
         self.tracks = [
@@ -35,7 +32,12 @@ class MainPageController: ObservableObject {
         ]
         self.soundManager = SoundManager(tracks: tracks)
         self.voiceConversionManager = VoiceConversionManager()
-        updateTotalDuration()
+
+        soundManager.delegate = self
+        soundManager.updateTotalDuration()
+
+        totalDuration = soundManager.totalDuration
+        currentTime = soundManager.currentTime
     }
     
     func toggleOverdub() {
@@ -76,7 +78,7 @@ class MainPageController: ObservableObject {
             return
         }
         track.reset()
-        updateTotalDuration()
+        soundManager.updateTotalDuration()
         DispatchQueue.main.async {
             self.objectWillChange.send()
         }
@@ -150,55 +152,22 @@ class MainPageController: ObservableObject {
         return state != .idle && state != .recording
     }
 
+    // MARK: - SoundManagerDelegate
+    func soundManagerDidUpdateProgress() {
+        currentTime = soundManager.currentTime
+        totalDuration = soundManager.totalDuration
+    }
+    
+    func soundManagerDidFinishPlayback() {
+        currentTime = 0.0
+        state = .idle
+    }
+
+    func soundManagerDidUpdateTotalDuration() {
+        totalDuration = soundManager.totalDuration
+    }
+
     // MARK: - Progress Tracking Methods
-    
-    func updateTotalDuration() {
-        var maxDuration: Double = 0.0
-        for track in tracks.values {
-            if track.state == .hasContent || track.state == .playing {
-                if let duration = track.getAudioDuration() {
-                    maxDuration = max(maxDuration, duration)
-                }
-            }
-        }
-        totalDuration = maxDuration
-    }
-    
-    private func startProgressTimer() {
-        stopProgressTimer()
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, !self.isSeekingProgress else { return }
-            self.updateCurrentTime()
-        }
-    }
-    
-    private func stopProgressTimer() {
-        progressTimer?.invalidate()
-        progressTimer = nil
-    }
-    
-    private func updateCurrentTime() {
-        // Find any playing track to get the current time reference
-        for track in tracks.values {
-            if track.state == .playing, let playerNode = track.getPlayerNode() {
-                if let lastRenderTime = playerNode.lastRenderTime,
-                   let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime) {
-                    let elapsedTime = Double(playerTime.sampleTime) / playerTime.sampleRate
-                    currentTime = resumeOffset + elapsedTime
-                    break // Use the first playing track as reference
-                }
-            }
-        }
-        
-        // Ensure current time doesn't exceed total duration
-        currentTime = min(currentTime, totalDuration)
-        
-        // If we've reached the end of the longest track, stop and reset to beginning
-        if currentTime >= totalDuration {
-            print("Playback finished - resetting to beginning")
-            stopPlaying()
-        }
-    }
     
     func seekToTime(_ time: Double) {
         // TODO: Implement seeking logic later
@@ -208,7 +177,7 @@ class MainPageController: ObservableObject {
     private func stopOverdub() {
         soundManager.stopRecording(trackNumber: focusedTrack)
         soundManager.stopPlayback()
-        updateTotalDuration()
+        soundManager.updateTotalDuration()
     }
 
     private func startOverdub() {
@@ -226,43 +195,22 @@ class MainPageController: ObservableObject {
 
     // Update the pause method
     private func pausePlaying() {
-        soundManager.stopPlayback()
-        stopProgressTimer()
+        soundManager.pausePlaying()
         print("Playback paused at \(currentTime) seconds")
         state = .idle
     }
     
     // Update the resume method
     private func resumePlaying() {
-        // Set the resume offset to current position
-        resumeOffset = currentTime
-        
-        let startTime = SoundManager.getStartTime()
-        if !soundManager.prepareForPlayback() {
-            print("Playback preparation failed")
-            return
-        }
-        
+        soundManager.resumePlaying()
         state = .playing
         print("Resuming playback from \(currentTime) seconds")
-        
-        // Schedule tracks that have content at current position
-        for track in tracks.values {
-            if let trackDuration = track.getAudioDuration(), currentTime < trackDuration {
-                track.seekAndSchedulePlayback(at: startTime.playAt, seekTime: currentTime)
-            }
-        }
-        soundManager.isPlaying = true
-        startProgressTimer()
     }
     
     // Update the stop method to reset offset
     private func stopPlaying() {
-        soundManager.stopPlayback()
-        stopProgressTimer()
-        currentTime = 0.0
-        resumeOffset = 0.0  // Reset offset
+        soundManager.stopPlaying()
         print("Playback stopped and reset to beginning")
-        state = .idle
+        // state = .idle
     }
 }
