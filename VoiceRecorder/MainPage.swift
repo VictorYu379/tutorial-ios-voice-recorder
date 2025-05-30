@@ -60,8 +60,10 @@ struct MainPage: View {
                 AudioProgressBar(
                     currentTime: $controller.currentTime,
                     totalDuration: controller.totalDuration,
-                    isSeekingProgress: $controller.isSeekingProgress,
-                    onSeek: { time in
+                    onStartSeeking: {
+                        controller.pausePlaybackIfNeeded()
+                    },
+                    onEndSeeking: { time in
                         controller.seekToTime(time)
                     }
                 )
@@ -391,8 +393,8 @@ struct SlidersMenuView: View {
 struct AudioProgressBar: View {
     @Binding var currentTime: Double
     let totalDuration: Double
-    @Binding var isSeekingProgress: Bool
-    let onSeek: (Double) -> Void
+    let onStartSeeking: () -> Void
+    let onEndSeeking: (Double) -> Void
     
     private func formatTime(_ time: Double) -> String {
         let minutes = Int(time) / 60
@@ -419,10 +421,11 @@ struct AudioProgressBar: View {
                 in: 0...totalDuration,
                 onEditingChanged: { editing in
                     if editing {
-                        isSeekingProgress = true
+                        // User started dragging - pause audio and mark as seeking
+                        onStartSeeking()
                     } else {
-                        isSeekingProgress = false
-                        onSeek(currentTime)
+                        // User finished dragging - seek and resume if needed
+                        onEndSeeking(currentTime)
                     }
                 }
             )

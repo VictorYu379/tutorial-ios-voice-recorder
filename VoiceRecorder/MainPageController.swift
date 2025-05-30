@@ -15,8 +15,8 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     @Published var currentTime: Double = 0.0
     @Published var totalDuration: Double = 0.0
     
-    // Progress tracking properties
-    @Published var isSeekingProgress: Bool = false
+    // Track state before seeking for resume functionality
+    private var wasPlayingBeforeSeeking: Bool = false
     
     private var tracks: [Int: Track]
     private var soundManager: SoundManager
@@ -169,9 +169,30 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
 
     // MARK: - Progress Tracking Methods
     
+    func pausePlaybackIfNeeded() {
+        // Remember if we were playing before seeking
+        wasPlayingBeforeSeeking = (state == .playing)
+        
+        if state == .playing {
+            soundManager.pausePlaying()
+            print("Paused playback for seeking. Was playing: \(wasPlayingBeforeSeeking)")
+        }
+    }
+    
     func seekToTime(_ time: Double) {
-        // TODO: Implement seeking logic later
-        print("Seeking to: \(time) seconds (not implemented yet)")
+        // Ensure the seek time is within valid bounds
+        let seekTime = max(0.0, min(time, totalDuration))
+        
+        print("Seeking to: \(seekTime) seconds")
+        
+        soundManager.seekTo(seekTime)
+        currentTime = seekTime
+        if wasPlayingBeforeSeeking {
+            soundManager.resumePlaying()
+        }
+        
+        // Reset the seeking state flag
+        wasPlayingBeforeSeeking = false
     }
 
     private func stopOverdub() {

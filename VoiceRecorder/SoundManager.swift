@@ -320,6 +320,22 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         self.delegate?.soundManagerDidFinishPlayback()
     }
 
+    // MARK: - Seeking Methods
+    
+    func seekTo(_ time: Double) {
+        // Just update the current time position without playing
+        isSeekingProgress = true
+        currentTime = max(0.0, min(time, totalDuration))
+        resumeOffset = currentTime
+        
+        // Notify delegate of the time change
+        DispatchQueue.main.async {
+            self.delegate?.soundManagerDidUpdateProgress()
+            // Reset seeking flag after update
+            self.isSeekingProgress = false
+        }
+    }
+
     func updateTotalDuration() {
         var maxDuration: Double = 0.0
         for track in tracks.values {

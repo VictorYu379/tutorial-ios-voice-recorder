@@ -152,35 +152,6 @@ class Track: ObservableObject {
         }
     }
     
-    private func deleteConvertedFiles(withPrefix prefix: String) {
-        let fileManager = FileManager.default
-        let folderURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs")
-        
-        do {
-            // 1) List everything in the folder
-            let files = try fileManager.contentsOfDirectory(
-                at: folderURL,
-                includingPropertiesForKeys: nil,
-                options: []
-            )
-            
-            // 2) Filter those whose filename begins with your prefix
-            let matching = files.filter { $0.lastPathComponent.hasPrefix(prefix) }
-            
-            // 3) Remove each one
-            for fileURL in matching {
-                do {
-                    try fileManager.removeItem(at: fileURL)
-                    print("Deleted:", fileURL.lastPathComponent)
-                } catch {
-                    print("Failed to delete \(fileURL.lastPathComponent):", error)
-                }
-            }
-        } catch {
-            print("Couldn’t list directory:", error)
-        }
-    }
-    
     func checkConversion(modelId: Int) -> Bool {
         let conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
         
@@ -201,9 +172,6 @@ class Track: ObservableObject {
         convertedModelId = nil
         audioFileUrl = Track.getAudioFileURL(id)
     }
-    
-    // MARK: - Playback Progress (Managed by SoundManager)
-    var currentPlayheadTime: TimeInterval = 0.0 // SoundManager will update this
     
     // MARK: - Utility
     // Add any utility functions specific to a track
@@ -281,5 +249,34 @@ class Track: ObservableObject {
         playerNode.play()
         state = .playing
         print("Track \(id): Playing from \(seekTime) seconds at \(time)")
+    }
+
+    private func deleteConvertedFiles(withPrefix prefix: String) {
+        let fileManager = FileManager.default
+        let folderURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs")
+        
+        do {
+            // 1) List everything in the folder
+            let files = try fileManager.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: nil,
+                options: []
+            )
+            
+            // 2) Filter those whose filename begins with your prefix
+            let matching = files.filter { $0.lastPathComponent.hasPrefix(prefix) }
+            
+            // 3) Remove each one
+            for fileURL in matching {
+                do {
+                    try fileManager.removeItem(at: fileURL)
+                    print("Deleted:", fileURL.lastPathComponent)
+                } catch {
+                    print("Failed to delete \(fileURL.lastPathComponent):", error)
+                }
+            }
+        } catch {
+            print("Couldn’t list directory:", error)
+        }
     }
 }
