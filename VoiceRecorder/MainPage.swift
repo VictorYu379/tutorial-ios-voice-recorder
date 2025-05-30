@@ -16,8 +16,6 @@ struct MainPage: View {
             VStack {
                 // Top Controls
                 HStack {
-                    let track = controller.getTrack(id: controller.focusedTrack)
-                    
                     Button(action: {
                         print("Metronome button tapped")
                         controller.getVoiceModel()
@@ -26,33 +24,25 @@ struct MainPage: View {
                             .font(.system(size: 30))
                     }
                     .disabled(true)
+
                     Spacer()
+                    
                     Button(action: {
                         print("Sliders button tapped")
                         controller.showSlidersMenu = true
                     }) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 30))
-                            .foregroundColor(.blue) // Set sliders to blue
                     }
-                    Button(action: {
-                        print("Recorder button tapped")
-                        controller.toggleOverdub()
-                    }) {
-                        Image(systemName: controller.state == .recording ? "stop.fill" : "record.circle")
-                            .font(.system(size: 30))
-                            .foregroundColor((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? .gray : .red)
-                    }
-                    .disabled(controller.shouldDisableRecordButtons() || track.state == .hasContent)
-                    .opacity((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? 0.5 : 1.0)
+                    .disabled(true)
                 }
                 .frame(maxHeight: 60)
                 .padding()
                 
                 VStack{
-                    TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack).padding(.bottom, 20)
-                    TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack).padding(.bottom, 20)
-                    TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack).padding(.bottom, 20)
+                    TrackView(track: controller.getTrack(id: 1), focused: $controller.focusedTrack, controller: controller).padding(.bottom, 20)
+                    TrackView(track: controller.getTrack(id: 2), focused: $controller.focusedTrack, controller: controller).padding(.bottom, 20)
+                    TrackView(track: controller.getTrack(id: 3), focused: $controller.focusedTrack, controller: controller).padding(.bottom, 20)
                 }
                 .padding(.vertical)
                 
@@ -75,27 +65,20 @@ struct MainPage: View {
                 
                 // Bottom Controls
                 HStack {
-                    Button(action: {
-                        print("back to start button tapped")
-                        controller.stopPlayback()
-                    }) {
-                        Image(systemName: "backward.end")
-                            .font(.system(size: 30, weight: .semibold))
-                    }
-                    .disabled(controller.shouldDisablePlaybackButtons())
-                    
                     Spacer()
                     
-                    Button(action: {
-                        print("skip back button tapped")
-                    }) {
-                        Image(systemName: "gobackward.10")
-                            .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
-                            .padding(8)
-                    }
-                    .disabled(true)
+                    let track = controller.getTrack(id: controller.focusedTrack)
                     
-                    Spacer()
+//                    Button(action: {
+//                        print("back to start button tapped")
+//                        controller.stopPlayback()
+//                    }) {
+//                        Image(systemName: "backward.end")
+//                            .font(.system(size: 30, weight: .semibold))
+//                    }
+//                    .disabled(true)
+//                    
+//                    Spacer()
                     
                     Button(action: {
                         print("play/pause button tapped")
@@ -109,18 +92,24 @@ struct MainPage: View {
                     Spacer()
                     
                     Button(action: {
-                        print("skip forward button tapped")
+                        print("Recorder button tapped")
+                        controller.toggleOverdub()
                     }) {
-                        Image(systemName: "goforward.10")
-                            .font(.system(size: 30, weight: .medium)) // Equivalent to title2 (approx.)
-                            .padding(8)
+                        Image(systemName: controller.state == .recording ? "stop.fill" : "record.circle")
+                            .font(.system(size: 30))
+                            .foregroundColor((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? .gray : .red)
                     }
-                    .disabled(true)
+                    .disabled(controller.shouldDisableRecordButtons() || track.state == .hasContent)
+                    .opacity((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? 0.5 : 1.0)
+                    
+                    Spacer()
                 }
                 .padding(.horizontal)
+                
             }
             .padding(.bottom, 50)
-            .padding(.horizontal, 20)
+            .padding(.leading, 20)    // Left padding
+            .padding(.trailing, 15)   // Right padding
             
             
 //             3) attach the sheet here
@@ -152,49 +141,61 @@ struct TrackView: View {
     @StateObject var track: Track
     var hasWaveform: Bool = false
     @Binding var focused: Int
+    let controller: MainPageController
     
     var body: some View {
         VStack(alignment: .leading) {
             Text("Track \(track.id)")
                 .font(.headline)
                 .padding(.leading)
-            RoundedRectangle(cornerRadius: 10)
-                .fill(focused == track.id ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
-                .frame(height: 60)
-                .overlay(
-                    Group {
-                        if track.isMuted {
-                            HStack {
-                                Spacer()
+            
+            HStack {
+                // Main track content
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(focused == track.id ? Color(.systemBlue).opacity(0.1) : Color(.systemGray6))
+                    .frame(height: 60)
+                    .overlay(
+                        Group {
+                            if track.isMuted {
                                 Image(systemName: "speaker.slash.fill")
                                     .font(.largeTitle)
                                     .foregroundColor(.gray)
-                                Spacer()
-                            }
-                        } else if track.state == .hasContent {
-                            HStack {
-                                Spacer()
+                            } else if track.state == .hasContent {
                                 Image(systemName: "waveform.and.mic")
                                     .font(.largeTitle)
                                     .foregroundColor(.gray)
-                                Spacer()
+                            } else if track.state == .recording {
+                                Text("Recording")
+                                    .foregroundColor(.gray)
+                            } else if track.state == .playing {
+                                Text("Playing")
+                                    .foregroundColor(.gray)
+                            } else {
+                                Text("Empty")
+                                    .foregroundColor(.gray)
                             }
-                        } else if track.state == .recording {
-                            Text("Recording")
-                                .foregroundColor(.gray)
-                        } else if track.state == .playing {
-                            Text("Playing")
-                                .foregroundColor(.gray)
-                        } else {
-                            Text("Empty")
-                                .foregroundColor(.gray)
                         }
+                    )
+                    .onTapGesture {
+                        focused = track.id
                     }
-                )
-                .padding(.horizontal)
-                .onTapGesture {
+                
+                // Three-dot settings button (separate from rectangle)
+                Button(action: {
+                    print("Settings button tapped for Track \(track.id)")
                     focused = track.id
+                    controller.showSlidersMenu = true
+                }) {
+                    Image(systemName: "ellipsis")
+                        .rotationEffect(.degrees(90))
+                        .font(.title2)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 3)
+                        .padding(.vertical, 8)
                 }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal)
         }
         .padding(.bottom, 8)
     }
