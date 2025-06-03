@@ -14,6 +14,12 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     @Published var showSlidersMenu: Bool = false
     @Published var currentTime: Double = 0.0
     @Published var totalDuration: Double = 0.0
+    @Published var syncDelta: Double = 0.0 {  // Add property observer
+        didSet {
+            soundManager.delta = syncDelta
+        }
+    }
+    @Published var showSyncSettings: Bool = false
     
     // Track state before seeking for resume functionality
     private var wasPlayingBeforeSeeking: Bool = false
@@ -210,7 +216,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
             print("Overdub preparation failed")
             return
         }
-        let startTime = SoundManager.getStartTime()
+        let startTime = soundManager.getStartTime()
         soundManager.startRecording(trackNumber: focusedTrack, at: startTime.recordAt)
         soundManager.startPlayback(at: startTime.playAt, skippingTrack: focusedTrack)
     }

@@ -28,13 +28,13 @@ struct MainPage: View {
                     Spacer()
                     
                     Button(action: {
-                        print("Sliders button tapped")
-                        controller.showSlidersMenu = true
+                        print("Settings button tapped")
+                        controller.showSyncSettings = true
                     }) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 30))
                     }
-                    .disabled(true)
+                    .disabled(controller.state == .recording)
                 }
                 .frame(maxHeight: 60)
                 .padding()
@@ -68,17 +68,6 @@ struct MainPage: View {
                     Spacer()
                     
                     let track = controller.getTrack(id: controller.focusedTrack)
-                    
-//                    Button(action: {
-//                        print("back to start button tapped")
-//                        controller.stopPlayback()
-//                    }) {
-//                        Image(systemName: "backward.end")
-//                            .font(.system(size: 30, weight: .semibold))
-//                    }
-//                    .disabled(true)
-//                    
-//                    Spacer()
                     
                     Button(action: {
                         print("play/pause button tapped")
@@ -118,6 +107,14 @@ struct MainPage: View {
                     .environmentObject(controller)
                     .presentationDetents([.fraction(0.7)])   // exactly half screen
                     .presentationDragIndicator(.visible)      // shows the grab bar
+            }
+
+            // Add sync settings sheet
+            .sheet(isPresented: $controller.showSyncSettings) {
+                SyncSettingsView()
+                    .environmentObject(controller)
+                    .presentationDetents([.fraction(0.4)])
+                    .presentationDragIndicator(.visible)
             }
             
             // ── Simple Spinner Overlay ──
@@ -198,6 +195,8 @@ struct TrackView: View {
             .padding(.horizontal)
         }
         .padding(.bottom, 8)
+        .opacity(controller.state == .recording ? 0.6 : 1.0)  // Dim entire track when recording
+        .allowsHitTesting(controller.state != .recording)  // Disable all interactions when recording
     }
 }
 
@@ -388,6 +387,77 @@ struct SlidersMenuView: View {
             
         }
         .padding()
+    }
+}
+
+struct SyncSettingsView: View {
+    @EnvironmentObject var controller: MainPageController
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 30) {
+                VStack(alignment: .leading, spacing: 15) {
+                    Text("Sync Adjustment")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("Adjust the timing between recording and playback to fix sync issues with different audio devices.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                VStack(spacing: 20) {
+                    HStack {
+                        Text("Recording Earlier")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("Recording Later")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Slider(
+                        value: $controller.syncDelta,
+                        in: -1.0...1.0,
+                        step: 0.01
+                    )
+                    .accentColor(.blue)
+                    
+                    HStack {
+                        Text("-1.0s")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("Current: \(String(format: "%.2f", controller.syncDelta))s")
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                        Spacer()
+                        Text("+1.0s")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("• Negative values: Recording starts earlier")
+                    Text("• Positive values: Recording starts later")
+                    Text("• Use when overdubbing feels out of sync")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(trailing: Button("Done") {
+                controller.showSyncSettings = false
+            })
+        }
     }
 }
 

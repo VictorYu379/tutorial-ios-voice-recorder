@@ -14,6 +14,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
 
     var currentTime: Double = 0.0
     var totalDuration: Double = 0.0
+    var delta: Double = 0.0
 
     private var audioRecorder: AVAudioRecorder!
     private var audioEngine: AVAudioEngine!
@@ -104,10 +105,9 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         print("--- End Audio Route Information ---\n")
     }
 
-    class func getStartTime() -> (recordAt: AVAudioTime, playAt: AVAudioTime) {
+    func getStartTime() -> (recordAt: AVAudioTime, playAt: AVAudioTime) {
         let baseDelay: TimeInterval = 0.1
         // let delta = 0.35
-        let delta = 0.0
         
         // If playback is slower (outLatency > inLatency), start playback earlier by that delta
         print("delta between input and output: \(delta)")
@@ -294,7 +294,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
     
     // Resume playing
     func resumePlaying() {
-        let startTime = SoundManager.getStartTime()
+        let startTime = self.getStartTime()
         if !prepareForPlayback() {
             print("Playback preparation failed")
             return
@@ -367,16 +367,27 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
     }
     
     private func updateCurrentTime() {
+        var timeUpdated = false
+    
         // Find any playing track to get the current time reference
         for track in tracks.values {
             if track.state == .playing, let playerNode = track.getPlayerNode() {
                 if let lastRenderTime = playerNode.lastRenderTime,
-                   let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime) {
+                let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime) {
                     let elapsedTime = Double(playerTime.sampleTime) / playerTime.sampleRate
                     currentTime = resumeOffset + elapsedTime
+                    timeUpdated = true
                     break // Use the first playing track as reference
                 }
             }
+        }
+        
+        // If no tracks are playing but playback is active, track time manually
+        if !timeUpdated && isPlaying {
+            // This handles the case where all audible tracks have finished
+            // but the timer should continue until totalDuration
+            let timerInterval = 0.05
+            currentTime += timerInterval
         }
         
         // Ensure current time doesn't exceed total duration
