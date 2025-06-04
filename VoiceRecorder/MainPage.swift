@@ -86,10 +86,10 @@ struct MainPage: View {
                     }) {
                         Image(systemName: controller.state == .recording ? "stop.fill" : "record.circle")
                             .font(.system(size: 30))
-                            .foregroundColor((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? .gray : .red)
+                            .foregroundColor(controller.shouldDisableRecordButtons() ? .gray : .red)
                     }
-                    .disabled(controller.shouldDisableRecordButtons() || track.state == .hasContent)
-                    .opacity((controller.shouldDisableRecordButtons() || track.state == .hasContent) ? 0.5 : 1.0)
+                    .disabled(controller.shouldDisableRecordButtons())
+                    .opacity((controller.shouldDisableRecordButtons()) ? 0.5 : 1.0)
                     
                     Spacer()
                 }
@@ -111,10 +111,15 @@ struct MainPage: View {
 
             // Add sync settings sheet
             .sheet(isPresented: $controller.showSyncSettings) {
-                SyncSettingsView()
-                    .environmentObject(controller)
-                    .presentationDetents([.fraction(0.4)])
-                    .presentationDragIndicator(.visible)
+                SyncSettingsView(
+                    syncDelta: $controller.syncDelta,
+                    showSyncSettings: $controller.showSyncSettings, 
+                    onSyncDeltaChanged: { delta in
+                        controller.updateSyncDelta(delta: delta)
+                    }
+                )
+                .presentationDetents([.fraction(0.4)])
+                .presentationDragIndicator(.visible)
             }
             
             // ── Simple Spinner Overlay ──
@@ -195,8 +200,8 @@ struct TrackView: View {
             .padding(.horizontal)
         }
         .padding(.bottom, 8)
-        .opacity(controller.state == .recording ? 0.6 : 1.0)  // Dim entire track when recording
-        .allowsHitTesting(controller.state != .recording)  // Disable all interactions when recording
+        .opacity(controller.shouldDisablePlaybackButtons() ? 0.6 : 1.0)  // Dim entire track when recording
+        .allowsHitTesting(!controller.shouldDisablePlaybackButtons())  // Disable all interactions when recording
     }
 }
 
@@ -219,13 +224,13 @@ struct SlidersMenuView: View {
                 Text("Volume")
                     .font(.subheadline)
                 Slider(
-                    value: Binding(
-                        get: { track.volume },
-                        set: { newVal in
-                            track.volume = newVal
+                    value: $track.volume,
+                    in: 0...1,
+                    onEditingChanged: { editing in
+                        if !editing {
+                            track.updateVolume(volume: track.volume)
                         }
-                    ),
-                    in: 0...1
+                    }
                 )
                 .disabled(track.isMuted)
                 .opacity(track.isMuted ? 0.5 : 1)
@@ -255,6 +260,7 @@ struct SlidersMenuView: View {
                 // Delete button
                 Button {
                     controller.deleteAudio(id: track.id)
+                    controller.showSlidersMenu = false
                 } label: {
                     Text("Delete")
                         .font(.headline)
@@ -387,11 +393,15 @@ struct SlidersMenuView: View {
             
         }
         .padding()
+        .opacity(track.state == .empty ? 0.6 : 1.0)  // Dim entire track when recording
+        .allowsHitTesting(track.state != .empty)
     }
 }
 
 struct SyncSettingsView: View {
-    @EnvironmentObject var controller: MainPageController
+    @Binding var syncDelta: Double
+    @Binding var showSyncSettings: Bool
+    let onSyncDeltaChanged: (Double) -> Void
     
     var body: some View {
         NavigationView {
@@ -419,9 +429,15 @@ struct SyncSettingsView: View {
                     }
                     
                     Slider(
-                        value: $controller.syncDelta,
+                        value: $syncDelta,
                         in: -1.0...1.0,
-                        step: 0.01
+                        step: 0.01,
+                        onEditingChanged: { editing in
+                            if !editing {
+                                // User finished dragging - seek and resume if needed
+                                onSyncDeltaChanged(syncDelta)
+                            }
+                        }
                     )
                     .accentColor(.blue)
                     
@@ -430,7 +446,7 @@ struct SyncSettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("Current: \(String(format: "%.2f", controller.syncDelta))s")
+                        Text("Current: \(String(format: "%.2f", syncDelta))s")
                             .font(.headline)
                             .foregroundColor(.blue)
                         Spacer()
@@ -455,7 +471,7 @@ struct SyncSettingsView: View {
             .padding()
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(trailing: Button("Done") {
-                controller.showSyncSettings = false
+                showSyncSettings = false
             })
         }
     }

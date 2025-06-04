@@ -9,6 +9,7 @@ enum AppState {
 }
 
 class MainPageController: ObservableObject, SoundManagerDelegate {
+
     @Published var focusedTrack: Int = 1
     @Published var state: AppState = .idle
     @Published var showSlidersMenu: Bool = false
@@ -21,6 +22,9 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     }
     @Published var showSyncSettings: Bool = false
     
+    private let userDefaults = UserDefaults.standard
+    private let SYNC_DELTA_KEY = "syncDelta"
+    
     // Track state before seeking for resume functionality
     private var wasPlayingBeforeSeeking: Bool = false
     
@@ -32,12 +36,13 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     
     init() {
         self.tracks = [
-            1: Track(id: 1),
-            2: Track(id: 2),
-            3: Track(id: 3),
+            1: Track(projectId: 1, id: 1),
+            2: Track(projectId: 1, id: 2),
+            3: Track(projectId: 1, id: 3),
         ]
         self.soundManager = SoundManager(tracks: tracks)
         self.voiceConversionManager = VoiceConversionManager()
+        self.syncDelta = userDefaults.double(forKey: SYNC_DELTA_KEY)
 
         soundManager.delegate = self
         soundManager.updateTotalDuration()
@@ -156,7 +161,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     }
 
     func shouldDisableRecordButtons() -> Bool {
-        return state != .idle && state != .recording
+        return state != .idle && state != .recording || self.getTrack(id: focusedTrack).state == .hasContent
     }
 
     // MARK: - SoundManagerDelegate
@@ -199,6 +204,10 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         
         // Reset the seeking state flag
         wasPlayingBeforeSeeking = false
+    }
+
+    func updateSyncDelta(delta: Double) {
+        userDefaults.set(delta, forKey: SYNC_DELTA_KEY)
     }
 
     private func stopOverdub() {

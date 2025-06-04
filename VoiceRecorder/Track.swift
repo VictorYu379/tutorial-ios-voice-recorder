@@ -15,26 +15,48 @@ func getDocumentsDirectory() -> URL {
 }
 
 class Track: ObservableObject {
+    private static let userDefaults = UserDefaults.standard
+    private static let MUTED_KEY = "muted"
+    private static let VOLUME_KEY = "volume"
+    private static let CONVERTED_MODEL_ID_KEY = "convertedModelId"
+
+    var projectId: Int
     var id: Int
+    var audioFileUrl: URL // URL to the audio file
     @Published var state: TrackState = .empty
     @Published var isMuted: Bool = false
-    var audioFileUrl: URL // URL to the audio file
-    var volume: Float = 1.0
+    @Published var volume: Float = 1.0
     @Published var convertedModelId: Int?
+    
+    private let volumeKey: String
+    private let convertedKey: String
+    private let mutedKey: String
     
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
-    
+
     // MARK: - Initialization
-    init(id: Int) {
+    init(projectId: Int, id: Int) {
+        self.projectId = projectId
         self.id = id
-        self.convertedModelId = nil
+        self.mutedKey = "\(projectId)_\(id)_\(Track.MUTED_KEY)"
+        self.volumeKey = "\(projectId)_\(id)_\(Track.VOLUME_KEY)"
+        self.convertedKey = "\(projectId)_\(id)_\(Track.CONVERTED_MODEL_ID_KEY)"
+
+        self.isMuted = Track.userDefaults.bool(forKey: mutedKey)
+        self.volume = Track.userDefaults.object(forKey: volumeKey) != nil ? Track.userDefaults.float(forKey: volumeKey) : 1.0
+        self.convertedModelId = Track.userDefaults.object(forKey: convertedKey) != nil ? Track.userDefaults.integer(forKey: convertedKey) : nil
+
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
         self.audioFileUrl = Track.getAudioFileURL(id)
         
         if FileManager.default.fileExists(atPath: self.audioFileUrl.path) {
             self.state = .hasContent
+
+            if let convertedModelId = convertedModelId {
+                audioFileUrl = getConvertedURL(modelId: convertedModelId)
+            }
         }
     }
     
@@ -125,11 +147,13 @@ class Track: ObservableObject {
     
     func mute() {
         isMuted = true
+        Track.userDefaults.set(isMuted, forKey: mutedKey)
         print("Track \(id): Muted")
     }
     
     func unmute() {
         isMuted = false;
+        Track.userDefaults.set(isMuted, forKey: mutedKey)
         print("Track \(id): Unmuted")
     }
     
@@ -139,9 +163,12 @@ class Track: ObservableObject {
                 try FileManager.default.removeItem(at: audioFileUrl)
                 print("Deleted file at \(audioFileUrl.lastPathComponent)")
                 self.deleteConvertedFiles(withPrefix: "recording_\(id)")
+                self.removeKeys()
                 state = .empty
                 isMuted = false
                 playerNode?.reset()
+                audioFileUrl = Track.getAudioFileURL(id)
+                convertedModelId = nil
                 audioFile = nil
                 volume = 1.0
             } catch {
@@ -165,11 +192,13 @@ class Track: ObservableObject {
     
     func useConversion(modelId: Int) {
         convertedModelId = modelId
+        Track.userDefaults.set(convertedModelId, forKey: convertedKey)
         audioFileUrl = getConvertedURL(modelId: modelId)
     }
     
     func useOriginal() {
         convertedModelId = nil
+        Track.userDefaults.set(convertedModelId, forKey: convertedKey)
         audioFileUrl = Track.getAudioFileURL(id)
     }
     
@@ -251,6 +280,11 @@ class Track: ObservableObject {
         print("Track \(id): Playing from \(seekTime) seconds at \(time)")
     }
 
+    func updateVolume(volume: Float) {
+        self.volume = volume
+        Track.userDefaults.set(volume, forKey: volumeKey)
+    }
+
     private func deleteConvertedFiles(withPrefix prefix: String) {
         let fileManager = FileManager.default
         let folderURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs")
@@ -278,5 +312,11 @@ class Track: ObservableObject {
         } catch {
             print("Couldn’t list directory:", error)
         }
+    }
+
+    private func removeKeys() {
+        Track.userDefaults.removeObject(forKey: mutedKey)
+        Track.userDefaults.removeObject(forKey: volumeKey)
+        Track.userDefaults.removeObject(forKey: convertedKey)
     }
 }
