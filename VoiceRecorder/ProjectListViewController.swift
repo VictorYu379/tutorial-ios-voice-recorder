@@ -24,8 +24,21 @@ class ProjectListViewController: ObservableObject {
     }
     
     func deleteProject(_ project: ProjectInfo) {
+        print("Deleting project \(project.id) with name \(project.name)")
+        
+        // Delete all tracks associated with this project
+        // Each project has 3 tracks with IDs 1, 2, 3
+        for trackId in 1...3 {
+            let track = Track(projectId: project.id, id: trackId)
+            track.reset()
+            print("Deleted track \(trackId) for project \(project.id)")
+        }
+        
+        // Remove the project from the dictionary
         projects.removeValue(forKey: project.id)
         saveProjects()
+        
+        print("Successfully deleted project \(project.id)")
     }
     
     func renameProject(projectId: UUID, to newName: String) {

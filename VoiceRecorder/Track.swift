@@ -20,7 +20,7 @@ class Track: ObservableObject {
     private static let VOLUME_KEY = "volume"
     private static let CONVERTED_MODEL_ID_KEY = "convertedModelId"
 
-    var projectId: Int
+    var projectId: UUID
     var id: Int
     var audioFileUrl: URL // URL to the audio file
     @Published var state: TrackState = .empty
@@ -36,7 +36,7 @@ class Track: ObservableObject {
     private var audioFile: AVAudioFile?
 
     // MARK: - Initialization
-    init(projectId: Int, id: Int) {
+    init(projectId: UUID, id: Int) {
         self.projectId = projectId
         self.id = id
         self.mutedKey = "\(projectId)_\(id)_\(Track.MUTED_KEY)"
@@ -49,7 +49,7 @@ class Track: ObservableObject {
 
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
-        self.audioFileUrl = Track.getAudioFileURL(id)
+        self.audioFileUrl = Track.getAudioFileURL(projectId, id)
         
         if FileManager.default.fileExists(atPath: self.audioFileUrl.path) {
             self.state = .hasContent
@@ -60,8 +60,8 @@ class Track: ObservableObject {
         }
     }
     
-    class func getAudioFileURL(_ id: Int) -> URL {
-        return getDocumentsDirectory().appendingPathComponent("recording_\(id).wav")
+    class func getAudioFileURL(_ projectId: UUID, _ id: Int) -> URL {
+        return getDocumentsDirectory().appendingPathComponent("recording_\(projectId)_\(id).wav")
     }
     
     func updateState(_ newState: TrackState) {
@@ -158,16 +158,17 @@ class Track: ObservableObject {
     }
     
     func reset() {
-        if FileManager.default.fileExists(atPath: audioFileUrl.path) {
+        let originalFileUrl = Track.getAudioFileURL(projectId, id)
+        if FileManager.default.fileExists(atPath: originalFileUrl.path) {
             do {
-                try FileManager.default.removeItem(at: audioFileUrl)
-                print("Deleted file at \(audioFileUrl.lastPathComponent)")
-                self.deleteConvertedFiles(withPrefix: "recording_\(id)")
+                try FileManager.default.removeItem(at: originalFileUrl)
+                print("Deleted file at \(originalFileUrl.lastPathComponent)")
+                self.deleteConvertedFiles(withPrefix: "recording_\(projectId)_\(id)")
                 self.removeKeys()
                 state = .empty
                 isMuted = false
                 playerNode?.reset()
-                audioFileUrl = Track.getAudioFileURL(id)
+                audioFileUrl = Track.getAudioFileURL(projectId, id)
                 convertedModelId = nil
                 audioFile = nil
                 volume = 1.0
@@ -175,12 +176,12 @@ class Track: ObservableObject {
                 print("Couldn’t delete file: \(error)")
             }
         } else {
-            print("No file to delete at \(audioFileUrl.path)")
+            print("No file to delete at \(originalFileUrl.path)")
         }
     }
     
     func checkConversion(modelId: Int) -> Bool {
-        let conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
+        let conversionURL = getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(projectId)_\(id)_converted_\(modelId).wav")
         
         if FileManager.default.fileExists(atPath: conversionURL.path) {
             return true
@@ -199,7 +200,7 @@ class Track: ObservableObject {
     func useOriginal() {
         convertedModelId = nil
         Track.userDefaults.set(convertedModelId, forKey: convertedKey)
-        audioFileUrl = Track.getAudioFileURL(id)
+        audioFileUrl = Track.getAudioFileURL(projectId, id)
     }
     
     // MARK: - Utility
@@ -219,7 +220,7 @@ class Track: ObservableObject {
     }
     
     func getConvertedURL(modelId: Int) -> URL {
-        getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(id)_converted_\(modelId).wav")
+        getDocumentsDirectory().appendingPathComponent("ConvertedWavs").appendingPathComponent("recording_\(projectId)_\(id)_converted_\(modelId).wav")
     }
     
     // MARK: - Audio Duration and Seeking Methods

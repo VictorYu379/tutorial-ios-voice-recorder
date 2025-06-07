@@ -13,6 +13,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     @Published var focusedTrack: Int = 1
     @Published var state: AppState = .idle
     @Published var showSlidersMenu: Bool = false
+    @Published var showSyncSettings: Bool = false
     @Published var currentTime: Double = 0.0
     @Published var totalDuration: Double = 0.0
     @Published var syncDelta: Double = 0.0 {  // Add property observer
@@ -20,8 +21,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
             soundManager.delta = syncDelta
         }
     }
-    @Published var showSyncSettings: Bool = false
-    
+    @Published var project: ProjectInfo
     private let userDefaults = UserDefaults.standard
     private let SYNC_DELTA_KEY = "syncDelta"
     
@@ -34,13 +34,14 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     
     private var pageNum: Int = 1
     
-    init() {
+    init(project: ProjectInfo) {
+        self.project = project
         self.tracks = [
-            1: Track(projectId: 1, id: 1),
-            2: Track(projectId: 1, id: 2),
-            3: Track(projectId: 1, id: 3),
+            1: Track(projectId: project.id, id: 1),
+            2: Track(projectId: project.id, id: 2),
+            3: Track(projectId: project.id, id: 3),
         ]
-        self.soundManager = SoundManager(tracks: tracks)
+        self.soundManager = SoundManager(projectId: project.id, tracks: tracks)
         self.voiceConversionManager = VoiceConversionManager()
         self.syncDelta = userDefaults.double(forKey: SYNC_DELTA_KEY)
 
@@ -62,6 +63,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     }
     
     func togglePlayback() {
+        print("project: \(project.name)")
         if state == .playing {
             pausePlaying()
         } else {
@@ -88,9 +90,9 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         guard let track = tracks[id] else {
             return
         }
+        soundManager.stopPlaying()
         track.reset()
         soundManager.updateTotalDuration()
-        soundManager.stopPlaying()
         DispatchQueue.main.async {
             self.objectWillChange.send()
         }

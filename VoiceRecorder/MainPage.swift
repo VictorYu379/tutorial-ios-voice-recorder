@@ -10,11 +10,12 @@ import SwiftUI
 
 struct MainPage: View {
     let project: ProjectInfo?
-    @StateObject private var controller = MainPageController()
+    @StateObject private var controller: MainPageController
     @Environment(\.dismiss) private var dismiss
     
-    init(project: ProjectInfo? = nil) {
+    init(project: ProjectInfo) {
         self.project = project
+        self._controller = StateObject(wrappedValue: MainPageController(project: project))
     }
     
     var body: some View {
@@ -537,5 +538,5 @@ struct AudioProgressBar: View {
 }
 
 #Preview {
-    MainPage()
+    MainPage(project: ProjectInfo(name: "Test Project"))
 }

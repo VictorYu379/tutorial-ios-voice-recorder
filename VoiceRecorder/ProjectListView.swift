@@ -4,7 +4,9 @@ struct ProjectListView: View {
     @StateObject private var controller = ProjectListViewController()
     @State private var showingRenameAlert = false
     @State private var showingCreateAlert = false
+    @State private var showingDeleteAlert = false
     @State private var projectToRename: ProjectInfo?
+    @State private var projectToDelete: ProjectInfo? 
     @State private var newProjectName = ""
     @State private var createProjectName = ""
     @State private var selectedProject: ProjectInfo?
@@ -45,6 +47,11 @@ struct ProjectListView: View {
             }
             .alert("Create New Project", isPresented: $showingCreateAlert) { 
                 createAlertContent 
+            }
+            .alert("Delete Project", isPresented: $showingDeleteAlert) { 
+                deleteAlertContent 
+            } message: {
+                Text("Are you sure you want to delete this project?")
             }
         }
     }
@@ -96,7 +103,8 @@ struct ProjectListView: View {
                             showingRenameAlert = true
                         },
                         onDelete: {
-                            controller.deleteProject(project)
+                            projectToDelete = project
+                            showingDeleteAlert = true
                         }
                     )
                 }
@@ -140,6 +148,21 @@ struct ProjectListView: View {
                 let finalName = createProjectName.trimmingCharacters(in: .whitespacesAndNewlines)
                 _ = controller.createNewProject(name: finalName)
                 createProjectName = ""
+            }
+        }
+    }
+
+    private var deleteAlertContent: some View {
+        Group {
+            Button("Cancel", role: .cancel) {
+                projectToDelete = nil
+            }
+            
+            Button("Delete", role: .destructive) {
+                if let project = projectToDelete {
+                    controller.deleteProject(project)
+                    projectToDelete = nil
+                }
             }
         }
     }

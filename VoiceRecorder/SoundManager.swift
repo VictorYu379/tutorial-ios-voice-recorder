@@ -22,6 +22,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
     private var isPlaying: Bool = false // Track playback state
     private var hasStartedRecording: Bool = false // New state for actual start
     private var tracks: [Int: Track]
+    private var projectId: UUID
     
     private var resumeOffset: Double = 0.0
     private var progressTimer: Timer?
@@ -29,7 +30,8 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
     private var isSeekingProgress: Bool = false
 
     // MARK: - Initialization
-    init(tracks: [Int: Track]) {
+    init(projectId: UUID, tracks: [Int: Track]) {
+        self.projectId = projectId
         self.tracks = tracks
         self.audioEngine = AVAudioEngine()
         self.audioEngine.mainMixerNode.volume = 1.0
@@ -134,7 +136,7 @@ class SoundManager: NSObject, AVAudioRecorderDelegate {
         
         // Use trackNumber to construct the recording URL
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let recordingURL = documentsDirectory.appendingPathComponent("recording_\(trackNumber).wav") // Consistent naming
+        let recordingURL = documentsDirectory.appendingPathComponent("recording_\(projectId)_\(trackNumber).wav") // Consistent naming
 
         do {
             let recordSettings: [String: Any] = [
