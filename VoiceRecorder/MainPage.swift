@@ -9,13 +9,30 @@
 import SwiftUI
 
 struct MainPage: View {
+    let project: ProjectInfo?
     @StateObject private var controller = MainPageController()
+    @Environment(\.dismiss) private var dismiss
+    
+    init(project: ProjectInfo? = nil) {
+        self.project = project
+    }
     
     var body: some View {
         ZStack {
             VStack {
                 // Top Controls
                 HStack {
+                    // Custom Back Button
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 25, weight: .semibold))
+                        // .foregroundColor(.blue)
+                    }
+
+                    Spacer()
+
                     Button(action: {
                         print("Metronome button tapped")
                         controller.getVoiceModel()
@@ -24,8 +41,6 @@ struct MainPage: View {
                             .font(.system(size: 30))
                     }
                     .disabled(true)
-
-                    Spacer()
                     
                     Button(action: {
                         print("Settings button tapped")
