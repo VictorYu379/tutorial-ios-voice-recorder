@@ -119,9 +119,9 @@ struct MainPage: View {
             
 //             3) attach the sheet here
             .sheet(isPresented: $controller.showSlidersMenu) {
-                SlidersMenuView(track: controller.getTrack(id: controller.focusedTrack))
+                TrackPopupMenuView(track: controller.getTrack(id: controller.focusedTrack))
                     .environmentObject(controller)
-                    .presentationDetents([.fraction(0.7)])   // exactly half screen
+                    .presentationDetents([.fraction(0.7), .large])   // exactly half screen
                     .presentationDragIndicator(.visible)      // shows the grab bar
             }
 
@@ -157,7 +157,6 @@ struct MainPage: View {
 
 struct TrackView: View {
     @StateObject var track: Track
-    var hasWaveform: Bool = false
     @Binding var focused: Int
     let controller: MainPageController
     
@@ -218,199 +217,6 @@ struct TrackView: View {
         .padding(.bottom, 8)
         .opacity(controller.shouldDisablePlaybackButtons() ? 0.6 : 1.0)  // Dim entire track when recording
         .allowsHitTesting(!controller.shouldDisablePlaybackButtons())  // Disable all interactions when recording
-    }
-}
-
-struct SlidersMenuView: View {
-    @StateObject var track: Track
-    @EnvironmentObject var controller: MainPageController
-    
-    // choose a width that fits both "Mute" and "Unmute"
-    private let pillWidth: CGFloat = 100
-    private let pillHeight: CGFloat = 40
-    
-    var body: some View {
-        VStack {
-            Text("Track \(track.id)")
-                .font(.headline)
-                .padding()
-            
-            // — Volume Slider
-            VStack(alignment: .leading) {
-                Text("Volume")
-                    .font(.subheadline)
-                Slider(
-                    value: $track.volume,
-                    in: 0...1,
-                    onEditingChanged: { editing in
-                        if !editing {
-                            track.updateVolume(volume: track.volume)
-                        }
-                    }
-                )
-                .disabled(track.isMuted)
-                .opacity(track.isMuted ? 0.5 : 1)
-            }
-            .padding()
-            
-            HStack(spacing: 40) {
-                // — Mute/Unmute
-                Button {
-                    controller.toggleMute(id: track.id)
-                } label: {
-                    Text(track.isMuted ? "Unmute" : "Mute")
-                        .font(.headline)
-                        .frame(width: pillWidth, height: pillHeight)
-                        .background(
-                            Capsule()
-                                .fill(controller
-                                    .getTrack(id: track.id)
-                                    .isMuted
-                                      ? Color.yellow.opacity(0.2)
-                                      : Color.gray.opacity(0.2)
-                                )
-                        )
-                        .foregroundColor(.primary)
-                }
-                
-                // Delete button
-                Button {
-                    controller.deleteAudio(id: track.id)
-                    controller.showSlidersMenu = false
-                } label: {
-                    Text("Delete")
-                        .font(.headline)
-                        .frame(width: pillWidth, height: pillHeight)
-                        .background(
-                            Capsule()
-                                .fill(Color.red.opacity(0.2))
-                        )
-                        .foregroundColor(.red)
-                }
-            }
-            .padding()
-            
-            VStack(spacing: 20) {
-                HStack(spacing: 40) {
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 1304810)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Violin")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 1304810
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 1331486)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Electric Guitar")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 1331486
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 1331492)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Flute")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 1331492
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                }
-                .padding()
-                
-                
-                HStack(spacing: 40) {
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 1304790)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Metal Guitar")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 1304790
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                    
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 201084)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Cello")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 201084
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                    
-                    Button {
-                        controller.convertAudio(trackId: track.id, modelId: 1312985)
-                        controller.showSlidersMenu = false
-                    } label: {
-                        Text("Saxophone")
-                            .font(.headline)
-                            .frame(width: pillWidth, height: pillHeight)
-                            .background(
-                                Capsule()
-                                    .fill(controller
-                                        .getTrack(id: track.id).convertedModelId == 1312985
-                                          ? Color.yellow.opacity(0.2)
-                                          : Color.gray.opacity(0.2)
-                                    )
-                            )
-                            .foregroundColor(.blue)
-                    }
-                }
-                .padding()
-            }
-            
-            Spacer()
-            
-        }
-        .padding()
-        .opacity(track.state == .empty ? 0.6 : 1.0)  // Dim entire track when recording
-        .allowsHitTesting(track.state != .empty)
     }
 }
 
