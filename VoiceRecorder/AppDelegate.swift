@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
 
         // Create the SwiftUI view that you want to be the root view
-        let contentView = ProjectListView() // Replace ContentView() with the actual name of your SwiftUI view
+        let contentView = ProjectsPage() // Replace ContentView() with the actual name of your SwiftUI view
 
         // Create a new UIWindow
         window = UIWindow(frame: UIScreen.main.bounds)

@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ProjectListView: View {
-    @StateObject private var controller = ProjectListViewController()
+struct ProjectsPage: View {
+    @StateObject private var controller = ProjectsPageController()
     @State private var showingRenameAlert = false
     @State private var showingCreateAlert = false
     @State private var showingDeleteAlert = false
@@ -221,5 +221,5 @@ struct ProjectRowView: View {
 }
 
 #Preview {
-    ProjectListView()
+    ProjectsPage()
 }

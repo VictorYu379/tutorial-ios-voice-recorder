@@ -10,10 +10,10 @@
 		3DA2D973220B71D300D8EA35 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA2D972220B71D300D8EA35 /* AppDelegate.swift */; };
 		3DA2D97D220B71D400D8EA35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3DA2D97C220B71D400D8EA35 /* Assets.xcassets */; };
 		3DA2D980220B71D400D8EA35 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3DA2D97E220B71D400D8EA35 /* LaunchScreen.storyboard */; };
-		F149B5422DEFC55000BFB54A /* ProjectsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F149B5412DEFC55000BFB54A /* ProjectsPage.swift */; };
-		F149B5442DEFC59D00BFB54A /* ProjectsPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F149B5432DEFC59D00BFB54A /* ProjectsPageController.swift */; };
 		F166D5852DF881CA00CAD53D /* TrackPopupMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F166D5842DF881CA00CAD53D /* TrackPopupMenuView.swift */; };
 		F166D5872DF8826D00CAD53D /* SoundModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F166D5862DF8826D00CAD53D /* SoundModel.swift */; };
+		F166D58A2DF8943400CAD53D /* ProjectsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F166D5882DF8943400CAD53D /* ProjectsPage.swift */; };
+		F166D58B2DF8943400CAD53D /* ProjectsPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F166D5892DF8943400CAD53D /* ProjectsPageController.swift */; };
 		F169622E2DEFDD8900D88080 /* ProjectInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F169622D2DEFDD8900D88080 /* ProjectInfo.swift */; };
 		F18A383D2DD10CEB00A25F71 /* MainPageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18A383C2DD10CEB00A25F71 /* MainPageController.swift */; };
 		F18A383F2DD40CAF00A25F71 /* VoiceConversionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18A383E2DD40CAF00A25F71 /* VoiceConversionManager.swift */; };
@@ -28,10 +28,10 @@
 		3DA2D97C220B71D400D8EA35 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3DA2D97F220B71D400D8EA35 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3DA2D981220B71D400D8EA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		F149B5412DEFC55000BFB54A /* ProjectsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsPage.swift; sourceTree = "<group>"; };
-		F149B5432DEFC59D00BFB54A /* ProjectsPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsPageController.swift; sourceTree = "<group>"; };
 		F166D5842DF881CA00CAD53D /* TrackPopupMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPopupMenuView.swift; sourceTree = "<group>"; };
 		F166D5862DF8826D00CAD53D /* SoundModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundModel.swift; sourceTree = "<group>"; };
+		F166D5882DF8943400CAD53D /* ProjectsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsPage.swift; sourceTree = "<group>"; };
+		F166D5892DF8943400CAD53D /* ProjectsPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsPageController.swift; sourceTree = "<group>"; };
 		F169622D2DEFDD8900D88080 /* ProjectInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectInfo.swift; sourceTree = "<group>"; };
 		F18A383C2DD10CEB00A25F71 /* MainPageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPageController.swift; sourceTree = "<group>"; };
 		F18A383E2DD40CAF00A25F71 /* VoiceConversionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceConversionManager.swift; sourceTree = "<group>"; };
@@ -79,8 +79,8 @@
 				F18A383C2DD10CEB00A25F71 /* MainPageController.swift */,
 				F1C93DC72DC69A2A00EA26BE /* Track.swift */,
 				F1C93DC92DC69A7000EA26BE /* SoundManager.swift */,
-				F149B5412DEFC55000BFB54A /* ProjectsPage.swift */,
-				F149B5432DEFC59D00BFB54A /* ProjectsPageController.swift */,
+				F166D5882DF8943400CAD53D /* ProjectsPage.swift */,
+				F166D5892DF8943400CAD53D /* ProjectsPageController.swift */,
 				F169622D2DEFDD8900D88080 /* ProjectInfo.swift */,
 				F166D5842DF881CA00CAD53D /* TrackPopupMenuView.swift */,
 				F166D5862DF8826D00CAD53D /* SoundModel.swift */,
@@ -160,14 +160,14 @@
 			files = (
 				F1C93DC62DC5AE3F00EA26BE /* MainPage.swift in Sources */,
 				F169622E2DEFDD8900D88080 /* ProjectInfo.swift in Sources */,
+				F166D58A2DF8943400CAD53D /* ProjectsPage.swift in Sources */,
+				F166D58B2DF8943400CAD53D /* ProjectsPageController.swift in Sources */,
 				3DA2D973220B71D300D8EA35 /* AppDelegate.swift in Sources */,
 				F18A383D2DD10CEB00A25F71 /* MainPageController.swift in Sources */,
 				F166D5852DF881CA00CAD53D /* TrackPopupMenuView.swift in Sources */,
 				F1C93DC82DC69A2A00EA26BE /* Track.swift in Sources */,
-				F149B5442DEFC59D00BFB54A /* ProjectsPageController.swift in Sources */,
 				F166D5872DF8826D00CAD53D /* SoundModel.swift in Sources */,
 				F18A383F2DD40CAF00A25F71 /* VoiceConversionManager.swift in Sources */,
-				F149B5422DEFC55000BFB54A /* ProjectsPage.swift in Sources */,
 				F1C93DCA2DC69A7000EA26BE /* SoundManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

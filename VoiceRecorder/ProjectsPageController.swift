@@ -1,6 +1,6 @@
 import Foundation
 
-class ProjectListViewController: ObservableObject {
+class ProjectsPageController: ObservableObject {
     public static let DEFAULT_PROJECT_NAME = "Untitled Project"
     @Published var projects: [UUID: ProjectInfo] = [:]
 
@@ -14,7 +14,7 @@ class ProjectListViewController: ObservableObject {
     func createNewProject(name: String = "") -> ProjectInfo {
         // Trim whitespace and provide better default if empty
         let projectName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalName = projectName.isEmpty ? ProjectListViewController.DEFAULT_PROJECT_NAME : projectName
+        let finalName = projectName.isEmpty ? ProjectsPageController.DEFAULT_PROJECT_NAME : projectName
         
         let project = ProjectInfo(name: finalName)
         projects[project.id] = project
