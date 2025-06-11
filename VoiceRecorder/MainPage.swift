@@ -121,7 +121,7 @@ struct MainPage: View {
             .sheet(isPresented: $controller.showPopupMenu) {
                 TrackPopupMenuView(track: controller.getTrack(id: controller.focusedTrack))
                     .environmentObject(controller)
-                    .presentationDetents([.fraction(0.7), .large])   // exactly half screen
+                    .presentationDetents([.fraction(0.6), .large])   // exactly half screen
                     .presentationDragIndicator(.visible)      // shows the grab bar
             }
 

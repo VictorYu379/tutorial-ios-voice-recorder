@@ -140,6 +140,8 @@ struct TrackPopupMenuView: View {
                         step: 1
                     )
                     .accentColor(.blue)
+                    .disabled(selectedModel == SoundModel.none)
+                    .opacity(selectedModel == SoundModel.none ? 0.5 : 1)
                     .padding(.horizontal, 20)
                     
                     // Current value display
@@ -150,24 +152,46 @@ struct TrackPopupMenuView: View {
                 }
             }
             
-            Spacer()
-            
-            // Convert Button
-            Button {
-                controller.convertAudio(trackId: track.id, modelId: selectedModel.id, octaveShift: octaveShift)
-                controller.showPopupMenu = false
-            } label: {
-                Text("Convert")
-                    .font(.headline)
-                    .frame(width: pillWidth, height: pillHeight)
-                    .background(
-                        Capsule()
-                            .fill(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? Color.gray.opacity(0.1) : Color.blue.opacity(0.2))
-                    )
-                    .foregroundColor(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? .gray : .blue)
+            // Spacer()
+
+            // Convert and Restore Buttons
+            HStack(spacing: 20) {
+                // Convert Button
+                Button {
+                    controller.convertAudio(trackId: track.id, modelId: selectedModel.id, octaveShift: octaveShift)
+                    controller.showPopupMenu = false
+                } label: {
+                    Text("Convert")
+                        .font(.headline)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .background(
+                            Capsule()
+                                .fill(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? Color.gray.opacity(0.1) : Color.blue.opacity(0.2))
+                        )
+                        .foregroundColor(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? .gray : .blue)
+                }
+                .disabled(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift))
+                
+                // Restore Original Button
+                Button {
+                    track.useOriginal()
+                    octaveShift = 0
+                    selectedModel = SoundModel.none
+                } label: {
+                    Text("Restore")
+                        .font(.headline)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .background(
+                            Capsule()
+                                .fill(track.convertedModelId != nil ? Color.orange.opacity(0.2) : Color.gray.opacity(0.1))
+                        )
+                        .foregroundColor(track.convertedModelId != nil ? .orange : .gray)
+                }
+                .disabled(track.convertedModelId == nil)
             }
-            .disabled(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift))
             .padding(.horizontal, 20)
+
+            Spacer()
         }
         .background(Color(.systemBackground))
         .opacity(track.state == .empty ? 0.6 : 1.0)

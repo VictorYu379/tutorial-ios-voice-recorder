@@ -155,6 +155,10 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         return state != .idle && state != .recording || self.getTrack(id: focusedTrack).state == .hasContent
     }
     
+    func shouldDisableConvertButton(model: SoundModel, track: Track, octaveShift: Int) -> Bool {
+        return model.id <= 0 || model.isSeparator || !track.shouldConvert(newModelId: model.id, newOctaveShift: octaveShift)
+    }
+    
     // MARK: - SoundManagerDelegate
     func soundManagerDidUpdateProgress() {
         currentTime = soundManager.currentTime
@@ -199,10 +203,6 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
     
     func updateSyncDelta(delta: Double) {
         userDefaults.set(delta, forKey: SYNC_DELTA_KEY)
-    }
-    
-    func shouldDisableConvertButton(model: SoundModel, track: Track, octaveShift: Int) -> Bool {
-        return model.id <= 0 || model.isSeparator || !track.shouldConvert(newModelId: model.id, newOctaveShift: octaveShift)
     }
     
     private func stopOverdub() {
