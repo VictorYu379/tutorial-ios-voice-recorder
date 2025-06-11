@@ -19,6 +19,7 @@ class Track: ObservableObject {
     private static let MUTED_KEY = "muted"
     private static let VOLUME_KEY = "volume"
     private static let CONVERTED_MODEL_ID_KEY = "convertedModelId"
+    private static let OCTAVE_SHIFT_KEY = "octaveShift"
 
     var projectId: UUID
     var id: Int
@@ -27,11 +28,12 @@ class Track: ObservableObject {
     @Published var isMuted: Bool = false
     @Published var volume: Float = 1.0
     @Published var convertedModelId: Int?
+    @Published var octaveShift: Int = 0
     
     private let volumeKey: String
     private let convertedKey: String
     private let mutedKey: String
-    
+    private let octaveShiftKey: String
     private var playerNode: AVAudioPlayerNode?
     private var audioFile: AVAudioFile?
 
@@ -42,14 +44,16 @@ class Track: ObservableObject {
         self.mutedKey = "\(projectId)_\(id)_\(Track.MUTED_KEY)"
         self.volumeKey = "\(projectId)_\(id)_\(Track.VOLUME_KEY)"
         self.convertedKey = "\(projectId)_\(id)_\(Track.CONVERTED_MODEL_ID_KEY)"
-
+        self.octaveShiftKey = "\(projectId)_\(id)_\(Track.OCTAVE_SHIFT_KEY)"
+        
         self.isMuted = Track.userDefaults.bool(forKey: mutedKey)
         self.volume = Track.userDefaults.object(forKey: volumeKey) != nil ? Track.userDefaults.float(forKey: volumeKey) : 1.0
         self.convertedModelId = Track.userDefaults.object(forKey: convertedKey) != nil ? Track.userDefaults.integer(forKey: convertedKey) : nil
-
+        self.octaveShift = Track.userDefaults.object(forKey: octaveShiftKey) != nil ? Track.userDefaults.integer(forKey: octaveShiftKey) : 0
+        
         // Initialize any track-specific properties
         self.playerNode = AVAudioPlayerNode()
-        self.audioFileUrl = Track.getAudioFileURL(projectId, id)
+        self.audioFileUrl = Track.getOriginalAudioFileURL(projectId, id)
         
         if FileManager.default.fileExists(atPath: self.audioFileUrl.path) {
             self.state = .hasContent
@@ -60,7 +64,7 @@ class Track: ObservableObject {
         }
     }
     
-    class func getAudioFileURL(_ projectId: UUID, _ id: Int) -> URL {
+    class func getOriginalAudioFileURL(_ projectId: UUID, _ id: Int) -> URL {
         return getDocumentsDirectory().appendingPathComponent("recording_\(projectId)_\(id).wav")
     }
     
@@ -158,7 +162,7 @@ class Track: ObservableObject {
     }
     
     func reset() {
-        let originalFileUrl = Track.getAudioFileURL(projectId, id)
+        let originalFileUrl = Track.getOriginalAudioFileURL(projectId, id)
         if FileManager.default.fileExists(atPath: originalFileUrl.path) {
             do {
                 try FileManager.default.removeItem(at: originalFileUrl)
@@ -168,7 +172,7 @@ class Track: ObservableObject {
                 state = .empty
                 isMuted = false
                 playerNode?.reset()
-                audioFileUrl = Track.getAudioFileURL(projectId, id)
+                audioFileUrl = Track.getOriginalAudioFileURL(projectId, id)
                 convertedModelId = nil
                 audioFile = nil
                 volume = 1.0
@@ -191,16 +195,20 @@ class Track: ObservableObject {
         }
     }
     
-    func useConversion(modelId: Int) {
+    func useConversion(modelId: Int, octaveShift: Int = 0) {
         convertedModelId = modelId
+        self.octaveShift = octaveShift
         Track.userDefaults.set(convertedModelId, forKey: convertedKey)
+        Track.userDefaults.set(octaveShift, forKey: octaveShiftKey)
         audioFileUrl = getConvertedURL(modelId: modelId)
     }
     
     func useOriginal() {
         convertedModelId = nil
+        octaveShift = 0
         Track.userDefaults.set(convertedModelId, forKey: convertedKey)
-        audioFileUrl = Track.getAudioFileURL(projectId, id)
+        Track.userDefaults.set(octaveShift, forKey: octaveShiftKey)
+        audioFileUrl = Track.getOriginalAudioFileURL(projectId, id)
     }
     
     // MARK: - Utility
@@ -284,6 +292,10 @@ class Track: ObservableObject {
     func updateVolume(volume: Float) {
         self.volume = volume
         Track.userDefaults.set(volume, forKey: volumeKey)
+    }
+
+    func shouldConvert(newModelId: Int, newOctaveShift: Int) -> Bool {
+        return convertedModelId != newModelId || octaveShift != newOctaveShift
     }
 
     private func deleteConvertedFiles(withPrefix prefix: String) {

@@ -118,7 +118,7 @@ struct MainPage: View {
             
             
 //             3) attach the sheet here
-            .sheet(isPresented: $controller.showSlidersMenu) {
+            .sheet(isPresented: $controller.showPopupMenu) {
                 TrackPopupMenuView(track: controller.getTrack(id: controller.focusedTrack))
                     .environmentObject(controller)
                     .presentationDetents([.fraction(0.7), .large])   // exactly half screen
@@ -201,7 +201,7 @@ struct TrackView: View {
                 Button(action: {
                     print("Settings button tapped for Track \(track.id)")
                     focused = track.id
-                    controller.showSlidersMenu = true
+                    controller.showPopupMenu = true
                 }) {
                     Image(systemName: "ellipsis")
                         .rotationEffect(.degrees(90))

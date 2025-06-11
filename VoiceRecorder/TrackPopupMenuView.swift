@@ -13,12 +13,13 @@ struct TrackPopupMenuView: View {
     @State private var selectedModel: SoundModel = SoundModel.none
     @EnvironmentObject var controller: MainPageController
     @State private var showPicker: Bool = false
+    @State private var octaveShift: Int = 0
     
     private let pillWidth: CGFloat = 120
     private let pillHeight: CGFloat = 40
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 10) {
             Text("Track \(track.id)")
                 .font(.headline)
                 .padding(.top)
@@ -63,7 +64,7 @@ struct TrackPopupMenuView: View {
                 
                 Button {
                     controller.deleteAudio(id: track.id)
-                    controller.showSlidersMenu = false
+                    controller.showPopupMenu = false
                 } label: {
                     Text("Delete")
                         .font(.headline)
@@ -122,25 +123,50 @@ struct TrackPopupMenuView: View {
                 .presentationDragIndicator(.visible)
             }
             
+            // — Pitch Shift Slider Section
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Pitch Shift")
+                    .font(.subheadline)
+                    .padding(.horizontal, 20)
+                
+                VStack(spacing: 8) {
+                    // Pitch shift slider
+                    Slider(
+                        value: Binding(
+                            get: { Double(octaveShift) },
+                            set: { octaveShift = Int($0) }
+                        ),
+                        in: -2...2,
+                        step: 1
+                    )
+                    .accentColor(.blue)
+                    .padding(.horizontal, 20)
+                    
+                    // Current value display
+                    Text("Current: \(octaveShift >= 0 ? "+" : "")\(octaveShift) octave")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 20)
+                }
+            }
+            
             Spacer()
-
+            
             // Convert Button
             Button {
-                if selectedModel.id > 0 && !selectedModel.isSeparator {
-                    controller.convertAudio(trackId: track.id, modelId: selectedModel.id)
-                    controller.showSlidersMenu = false
-                }
+                controller.convertAudio(trackId: track.id, modelId: selectedModel.id, octaveShift: octaveShift)
+                controller.showPopupMenu = false
             } label: {
                 Text("Convert")
                     .font(.headline)
                     .frame(width: pillWidth, height: pillHeight)
                     .background(
                         Capsule()
-                            .fill(selectedModel.id > 0 && !selectedModel.isSeparator ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
+                            .fill(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? Color.gray.opacity(0.1) : Color.blue.opacity(0.2))
                     )
-                    .foregroundColor(selectedModel.id > 0 && !selectedModel.isSeparator ? .blue : .gray)
+                    .foregroundColor(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift) ? .gray : .blue)
             }
-            .disabled(selectedModel.id <= 0 || selectedModel.isSeparator)
+            .disabled(controller.shouldDisableConvertButton(model: selectedModel, track: track, octaveShift: octaveShift))
             .padding(.horizontal, 20)
         }
         .background(Color(.systemBackground))
@@ -148,6 +174,7 @@ struct TrackPopupMenuView: View {
         .allowsHitTesting(track.state != .empty)
         .onAppear {
             selectedModel = SoundModel.model(for: track.convertedModelId)
+            octaveShift = track.octaveShift
         }
     }
 }

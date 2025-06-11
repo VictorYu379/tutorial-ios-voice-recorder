@@ -69,10 +69,12 @@ class VoiceConversionManager {
         convertedFileURL: URL,
         trackId: Int,
         modelId: Int,
+        octaveShift: Int,
         pollInterval: TimeInterval = 2.0,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
-        startVoiceConversion(fileURL: fileURL, convertedFileURL: convertedFileURL, modelId: modelId) { [weak self] result in
+        let pitchShift = octaveShift * 12
+        startVoiceConversion(fileURL: fileURL, convertedFileURL: convertedFileURL, modelId: modelId, pitchShift: pitchShift) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .failure(let err):
@@ -119,6 +121,7 @@ class VoiceConversionManager {
         fileURL: URL,
         convertedFileURL: URL,
         modelId: Int,
+        pitchShift: Int,
         completion: @escaping (Result<Int, Error>) -> Void
     ) {
         let url = URL(string: "https://arpeggi.io/api/kits/v1/voice-conversions")!
@@ -136,7 +139,7 @@ class VoiceConversionManager {
             "voiceModelId": String(modelId),
             "conversionStrength": "0.5",
             "modelVolumeMix": "0.5",
-            "pitchShift": "0"
+            "pitchShift": String(pitchShift)
         ]
         // append text fields
         for (key, value) in params {

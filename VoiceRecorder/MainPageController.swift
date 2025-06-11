@@ -9,10 +9,10 @@ enum AppState {
 }
 
 class MainPageController: ObservableObject, SoundManagerDelegate {
-
+    
     @Published var focusedTrack: Int = 1
     @Published var state: AppState = .idle
-    @Published var showSlidersMenu: Bool = false
+    @Published var showPopupMenu: Bool = true
     @Published var showSyncSettings: Bool = false
     @Published var currentTime: Double = 0.0
     @Published var totalDuration: Double = 0.0
@@ -44,10 +44,10 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         self.soundManager = SoundManager(projectId: project.id, tracks: tracks)
         self.voiceConversionManager = VoiceConversionManager()
         self.syncDelta = userDefaults.double(forKey: SYNC_DELTA_KEY)
-
+        
         soundManager.delegate = self
         soundManager.updateTotalDuration()
-
+        
         totalDuration = soundManager.totalDuration
         currentTime = soundManager.currentTime
     }
@@ -70,7 +70,7 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
             resumePlaying()
         }
     }
-
+    
     func stopPlayback() {
         stopPlaying()
     }
@@ -117,30 +117,19 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         pageNum = pageNum + 1
     }
     
-    func convertAudio(trackId: Int, modelId: Int) {
+    func convertAudio(trackId: Int, modelId: Int, octaveShift: Int = 0) {
         guard let track = tracks[trackId] else { return }
-        
-        if track.convertedModelId == modelId {
-            track.useOriginal()
-            print("will restore to original audio")
-            return
-        }
-        
-        if track.checkConversion(modelId: modelId) {
-            track.useConversion(modelId: modelId)
-            print("will use existing conversion")
-            return
-        }
         
         state = .converting
         
         print("conversion not existing, will call API")
         // one-liner now!
         voiceConversionManager.convert(
-            fileURL: track.getURL(),
+            fileURL: Track.getOriginalAudioFileURL(project.id, trackId),
             convertedFileURL: track.getConvertedURL(modelId: modelId),
             trackId: trackId,
-            modelId: modelId
+            modelId: modelId,
+            octaveShift: octaveShift
         ) { [weak self] downloadResult in
             DispatchQueue.main.async {
                 switch downloadResult {
@@ -150,22 +139,22 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
                 case .success(let localURL):
                     print("Converted WAV saved to:", localURL.path)
                     // finally apply it to the track:
-                    self?.tracks[trackId]?.useConversion(modelId: modelId)
+                    self?.tracks[trackId]?.useConversion(modelId: modelId, octaveShift: octaveShift)
                     self?.state = .idle
-                    self?.showSlidersMenu = true
+                    self?.showPopupMenu = true
                 }
             }
         }
     }
-
+    
     func shouldDisablePlaybackButtons() -> Bool {
         return state != .idle && state != .playing
     }
-
+    
     func shouldDisableRecordButtons() -> Bool {
         return state != .idle && state != .recording || self.getTrack(id: focusedTrack).state == .hasContent
     }
-
+    
     // MARK: - SoundManagerDelegate
     func soundManagerDidUpdateProgress() {
         currentTime = soundManager.currentTime
@@ -175,11 +164,11 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         currentTime = 0.0
         state = .idle
     }
-
+    
     func soundManagerDidUpdateTotalDuration() {
         totalDuration = soundManager.totalDuration
     }
-
+    
     // MARK: - Progress Tracking Methods
     
     func pausePlaybackIfNeeded() {
@@ -207,21 +196,25 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         // Reset the seeking state flag
         wasPlayingBeforeSeeking = false
     }
-
+    
     func updateSyncDelta(delta: Double) {
         userDefaults.set(delta, forKey: SYNC_DELTA_KEY)
     }
-
+    
+    func shouldDisableConvertButton(model: SoundModel, track: Track, octaveShift: Int) -> Bool {
+        return model.id <= 0 || model.isSeparator || !track.shouldConvert(newModelId: model.id, newOctaveShift: octaveShift)
+    }
+    
     private func stopOverdub() {
         soundManager.stopRecording(trackNumber: focusedTrack)
         soundManager.stopPlayback()
         soundManager.updateTotalDuration()
     }
-
+    
     private func startOverdub() {
         // first reset the tracks
         soundManager.stopPlaying()
-
+        
         if !soundManager.prepareForPlayback()
             || !soundManager.prepareToRecord(trackNumber: focusedTrack) {
             print("Overdub preparation failed")
@@ -231,9 +224,9 @@ class MainPageController: ObservableObject, SoundManagerDelegate {
         soundManager.startRecording(trackNumber: focusedTrack, at: startTime.recordAt)
         soundManager.startPlayback(at: startTime.playAt, skippingTrack: focusedTrack)
     }
-
+    
     // MARK: - Playback Control Methods
-
+    
     // Update the pause method
     private func pausePlaying() {
         soundManager.pausePlaying()
